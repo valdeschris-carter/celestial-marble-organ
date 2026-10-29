@@ -1,0 +1,2171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Celestial Marble Organ</title>
+<style>
+  :root{
+    --gold:#e6c27a; --amber:#ffb347; --cyan:#8fe6ff; --rose:#ff9ec4;
+    --ink:#05070c; --panel:rgba(10,14,22,0.72); --line:rgba(230,194,122,0.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);
+    font-family:"Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;color:#e9dcc4;
+    -webkit-font-smoothing:antialiased;user-select:none}
+  canvas{display:block;position:fixed;inset:0}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 35%,rgba(0,0,0,0.55) 100%),
+               linear-gradient(to bottom,rgba(3,5,9,0.35),rgba(0,0,0,0) 25%,rgba(0,0,0,0.25) 100%)}
+  #ui{position:fixed;inset:0;z-index:3;pointer-events:none}
+  .panel{pointer-events:auto;background:linear-gradient(160deg,rgba(16,21,32,0.86),rgba(8,11,18,0.78));
+    border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.06);backdrop-filter:blur(12px)}
+  #brand{position:absolute;left:26px;top:22px;max-width:min(640px,52vw)}
+  #brand h1{margin:0;font-size:clamp(18px,1.75vw,27px);font-weight:600;letter-spacing:0.14em;
+    background:linear-gradient(100deg,#fff3d4,#e6c27a 45%,#a87a3c 70%,#f4e3bd);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 28px rgba(230,194,122,0.18)}
+  #brand .sub{margin-top:7px;font-size:11px;letter-spacing:0.32em;text-transform:uppercase;color:#9fb0c8;opacity:.85}
+  #brand .rule{margin-top:12px;height:1px;width:190px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  #status{position:absolute;right:26px;top:22px;width:292px;padding:16px 18px 14px}
+  #status .tag{font-size:9.5px;letter-spacing:0.34em;text-transform:uppercase;color:#8fa2ba}
+  #status .piece{font-size:18px;line-height:1.25;margin:6px 0 2px;color:#f4e7c9}
+  #status .style{font-size:12px;font-style:italic;color:#c9a86a;margin-bottom:12px}
+  #status .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;font-size:11px}
+  #status .grid div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted rgba(230,194,122,0.16);padding-bottom:4px}
+  #status .grid span:first-child{color:#8fa2ba;letter-spacing:.08em;text-transform:uppercase;font-size:9px}
+  #status .grid span:last-child{color:#f0dfb9}
+  #meter{display:flex;gap:3px;margin-top:12px;height:6px;align-items:flex-end}
+  #meter i{flex:1;background:linear-gradient(to top,#5b3a18,#e6c27a);border-radius:1px;opacity:.5;transition:height .12s}
+  #hitsLine{margin-top:10px;font-size:10px;letter-spacing:.18em;color:#7f93ab;display:flex;justify-content:space-between}
+  #hitsLine b{color:var(--amber);font-weight:600}
+  #request{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:min(780px,calc(100vw - 52px));padding:14px 16px 13px}
+  #request .row{display:flex;gap:10px;align-items:center}
+  #req{flex:1;min-width:0;background:rgba(4,7,12,0.72);border:1px solid rgba(230,194,122,0.28);
+    border-radius:9px;padding:12px 14px;color:#f4e7c9;font-family:inherit;font-size:14px;outline:none;
+    transition:border-color .2s,box-shadow .2s}
+  #req::placeholder{color:#71849c;font-style:italic}
+  #req:focus{border-color:rgba(230,194,122,0.75);box-shadow:0 0 0 3px rgba(230,194,122,0.08)}
+  .btn{pointer-events:auto;cursor:pointer;border:1px solid rgba(230,194,122,0.4);border-radius:8px;
+    background:linear-gradient(180deg,rgba(230,194,122,0.16),rgba(230,194,122,0.06));
+    color:#f4e7c9;font-family:inherit;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    padding:11px 16px;transition:all .18s;white-space:nowrap}
+  .btn:hover{background:linear-gradient(180deg,rgba(230,194,122,0.3),rgba(230,194,122,0.12));
+    box-shadow:0 0 18px rgba(230,194,122,0.18);border-color:rgba(230,194,122,0.8)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg,#e6c27a,#b8873e);color:#151009;border-color:#f0d69b;font-weight:700}
+  .btn.primary:hover{box-shadow:0 0 24px rgba(230,194,122,0.45)}
+  .btn.small{font-size:9.5px;padding:7px 10px;letter-spacing:.12em}
+  .btn.on{background:linear-gradient(180deg,rgba(143,230,255,0.3),rgba(143,230,255,0.08));border-color:rgba(143,230,255,0.8);color:#dff8ff}
+  #presets{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .chip{pointer-events:auto;cursor:pointer;font-family:inherit;font-size:10.5px;color:#d9c49a;
+    border:1px solid rgba(230,194,122,0.24);border-radius:999px;padding:6px 11px;background:rgba(230,194,122,0.05);
+    transition:all .16s;white-space:nowrap}
+  .chip:hover{color:#fff3d4;border-color:rgba(230,194,122,0.7);background:rgba(230,194,122,0.14)}
+  #tools{position:absolute;left:26px;bottom:22px;display:flex;gap:7px;flex-wrap:wrap;max-width:330px}
+  #hintbar{position:absolute;left:26px;bottom:104px;font-size:9px;line-height:1.7;color:#7f93ab;letter-spacing:.04em;max-width:205px}
+  #hintbar b{color:#c9a86a;font-weight:500}
+  #hintbar{opacity:.85}
+  #soundHint{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at center,rgba(5,8,14,0.02),rgba(3,5,9,0.40));cursor:pointer;
+    transition:opacity .8s ease,visibility .8s}
+  #soundHint.hidden{opacity:0;visibility:hidden}
+  #soundHint .ring{width:96px;height:96px;border-radius:50%;border:1px solid rgba(230,194,122,0.65);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    box-shadow:0 0 60px rgba(230,194,122,0.25),inset 0 0 30px rgba(230,194,122,0.08);animation:pulse 2.6s infinite}
+  #soundHint .ring:after{content:"";position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(230,194,122,0.22);animation:pulse 2.6s .6s infinite}
+  #soundHint .ring span{font-size:27px;color:#f4e3bd;text-shadow:0 0 18px rgba(230,194,122,0.8)}
+  #soundHint h2{margin:22px 0 6px;text-shadow:0 2px 18px rgba(0,0,0,0.9);font-size:15px;letter-spacing:.42em;text-transform:uppercase;color:#f4e3bd;font-weight:500}
+  #soundHint p{margin:0;font-size:12px;color:#b9c8db;letter-spacing:.08em;font-style:italic;text-shadow:0 2px 12px rgba(0,0,0,0.9)}
+  #soundHint .tiny{margin-top:26px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#6f8299}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.06);opacity:1}}
+  #toast{position:absolute;left:50%;top:78px;transform:translateX(-50%);font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:#dff8ff;background:rgba(8,14,22,0.8);border:1px solid rgba(143,230,255,0.4);
+    padding:8px 16px;border-radius:999px;opacity:0;transition:opacity .35s;pointer-events:none;white-space:nowrap}
+  #toast.show{opacity:1}
+  #fps{position:absolute;right:26px;bottom:22px;font-size:9px;letter-spacing:.2em;color:#5f7288}
+  @media (max-width:860px){
+    #brand{left:14px;top:14px} #status{right:14px;top:14px;width:236px;padding:12px}
+    #request{bottom:14px;width:calc(100vw - 28px);padding:11px}
+    #tools{left:14px;bottom:14px;max-width:calc(100vw - 28px)} #hintbar{display:none}
+    #status .piece{font-size:15px}
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "simplex-noise": "https://cdn.jsdelivr.net/npm/simplex-noise@4.0.3/dist/esm/simplex-noise.js",
+  "@tweenjs/tween.js": "https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@25.0.0/dist/tween.esm.js",
+  "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+} }
+</script>
+</head>
+<body>
+<div id="vignette"></div>
+<div id="ui">
+  <div id="brand">
+    <h1>THE CELESTIAL MARBLE ORGAN</h1>
+    <div class="sub">A machine that thinks in gravity &amp; plays in light</div>
+    <div class="rule"></div>
+  </div>
+
+  <div id="status" class="panel">
+    <div class="tag">Now playing</div>
+    <div class="piece" id="pieceName">Nocturne of Falling Light</div>
+    <div class="style" id="styleName">cinematic · D minor · 66 bpm</div>
+    <div class="grid">
+      <div><span>Tempo</span><span id="tempo">66</span></div>
+      <div><span>Key</span><span id="key">D minor</span></div>
+      <div><span>Meter</span><span id="meterLabel">4/4</span></div>
+      <div><span>Balls</span><span id="ballReserve">64</span></div>
+    </div>
+    <div id="meter"></div>
+    <div id="hitsLine"><span>Notes struck</span><b id="hitCount">0</b></div>
+  </div>
+
+  <div id="request" class="panel">
+    <div class="row">
+      <input id="req" type="text" autocomplete="off" spellcheck="false"
+        placeholder="Describe the piece you want…  e.g. “sad jazz waltz, slow”">
+      <button class="btn primary" id="playBtn">Play</button>
+    </div>
+    <div id="presets">
+      <button class="chip" data-text="sad jazz waltz, slow">Sad jazz waltz</button>
+      <button class="chip" data-text="happy 8-bit chase music">Happy 8-bit chase</button>
+      <button class="chip" data-text="epic cinematic battle in D minor">Epic cinematic</button>
+      <button class="chip" data-text="dreamy ambient lullaby, very slow">Dreamy lullaby</button>
+      <button class="chip" data-text="dark techno pulse, driving">Dark techno</button>
+      <button class="chip" data-text="romantic strings serenade in A major">Romantic strings</button>
+      <button class="chip" data-text="mysterious gamelan in the rain">Mysterious gamelan</button>
+      <button class="chip" data-text="playful carnival march, fast">Carnival march</button>
+    </div>
+  </div>
+
+  <div id="hintbar">
+    <b>Drag</b> to orbit · <b>Scroll</b> to zoom · <b>Drag a ball</b> to throw it ·
+    <b>Click</b> empty space to drop a ball · <b>Shift-click</b> a ball to remove it.
+  </div>
+
+  <div id="tools">
+    <button class="btn small on" id="tourBtn">Cinematic tour</button>
+    <button class="btn small" id="dropBtn">Drop ball</button>
+    <button class="btn small" id="clearBtn">Clear balls</button>
+    <button class="btn small" id="muteBtn">Sound on</button>
+  </div>
+
+  <div id="fps"></div>
+  <div id="toast"></div>
+</div>
+
+<div id="soundHint">
+  <div class="ring"><span>♪</span></div>
+  <h2>Click for sound</h2>
+  <p>The machine is already moving. Sound begins on your first click.</p>
+  <div class="tiny">Headphones recommended · every note is made by a falling ball</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import * as CANNON from 'cannon-es';
+
+/* ============================================================================
+   THE CELESTIAL MARBLE ORGAN
+   A five-tier cathedral of glass, brass and tuned matter. Balls are lifted by
+   the central helix, released by mechanical gates, and every note is struck by
+   real physics. The composer below writes the score; the machine performs it
+   with gravity. No note is ever scheduled to a timer: a collision makes it.
+   ========================================================================== */
+
+const TAU = Math.PI * 2;
+const GRAV = 9.82;
+const TIER_SPACING = 4.5;
+const TIER_Y = [4.0, 8.5, 13.0, 17.5, 22.0];
+const PART_RADIUS = 7.15;
+const DROP_HEIGHT = 2.6;
+const BALL_R = 0.145;
+
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const smooth = t=>t*t*(3-2*t);
+const rand = (a,b)=>a+Math.random()*(b-a);
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hashString(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12);}
+function freqToNote(f){const m=Math.round(69+12*Math.log2(Math.max(20,f)/440));return NOTE_NAMES[((m%12)+12)%12]+(Math.floor(m/12)-1);}
+function midiToName(m){return NOTE_NAMES[((m%12)+12)%12]+(Math.floor(m/12)-1);}
+
+/* ---------------------------------------------------------------------------
+   AUDIO — every sound is synthesized live. The reverb is a generated impulse.
+   ------------------------------------------------------------------------- */
+class AudioEngine {
+  constructor(){
+    this.ctx=null; this.ready=false; this.muted=false; this.style={reverb:0.4,wet:0.4};
+    this.ksCache=new Map(); this.droneStarted=false; this.volume=0.9;
+  }
+  init(){
+    if(this.ctx) return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      const ctx=new AC({latencyHint:'interactive'});
+      this.ctx=ctx;
+      this.master=ctx.createGain(); this.master.gain.value=this.volume;
+      this.limiter=ctx.createDynamicsCompressor();
+      this.limiter.threshold.value=-10; this.limiter.knee.value=8; this.limiter.ratio.value=14;
+      this.limiter.attack.value=0.002; this.limiter.release.value=0.25;
+      this.master.connect(this.limiter); this.limiter.connect(ctx.destination);
+      this.reverb=ctx.createConvolver(); this.reverb.buffer=this.makeIR(4.0,2.7);
+      this.reverbGain=ctx.createGain(); this.reverbGain.gain.value=0.42;
+      this.reverb.connect(this.reverbGain); this.reverbGain.connect(this.master);
+      this.noise=this.makeNoise(2.2);
+      this.ready=true;
+      this.startDrone();
+    }catch(e){console.warn('audio unavailable',e);}
+  }
+  resume(){
+    if(!this.ctx) this.init();
+    if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume().catch(()=>{});
+  }
+  setStyle(s){this.style=Object.assign(this.style,s||{});}
+  makeNoise(sec){
+    const ctx=this.ctx,sr=ctx.sampleRate,len=Math.floor(sr*sec),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    return buf;
+  }
+  makeIR(dur,decay){
+    const ctx=this.ctx,sr=ctx.sampleRate,len=Math.floor(sr*dur),buf=ctx.createBuffer(2,len,sr);
+    for(let ch=0;ch<2;ch++){
+      const d=buf.getChannelData(ch); let lp=0;
+      for(let i=0;i<len;i++){
+        const t=i/len; const env=Math.pow(1-t,decay)*Math.min(1,i/(sr*0.01));
+        const n=Math.random()*2-1; lp+=(n-lp)*0.22;
+        d[i]=lp*env*(0.85+0.15*Math.sin(i*0.0007+ch));
+      }
+      // a few early reflections
+      for(let k=1;k<=5;k++){const idx=Math.floor(sr*(0.011*k+0.006*Math.random())); if(idx<len) d[idx]+=(Math.random()*2-1)*0.35/k;}
+    }
+    return buf;
+  }
+  startDrone(){
+    if(this.droneStarted||!this.ctx) return; this.droneStarted=true;
+    const ctx=this.ctx,t=ctx.currentTime;
+    const g=ctx.createGain(); g.gain.value=0.0;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=220;
+    g.connect(lp); lp.connect(this.master);
+    for(const [f,v] of [[36.7,0.5],[55,0.35],[73.4,0.18],[110,0.08]]){
+      const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const og=ctx.createGain(); og.gain.value=v; o.connect(og); og.connect(g);
+      o.start(t);
+    }
+    const n=ctx.createBufferSource(); n.buffer=this.noise; n.loop=true;
+    const nf=ctx.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=900; nf.Q.value=0.7;
+    const ng=ctx.createGain(); ng.gain.value=0.012; n.connect(nf); nf.connect(ng); ng.connect(g); n.start(t);
+    g.gain.setTargetAtTime(0.16,t,1.5);
+    // slow breathing
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.055;
+    const lg=ctx.createGain(); lg.gain.value=0.05; lfo.connect(lg); lg.connect(g.gain); lfo.start(t);
+  }
+  setMuted(m){this.muted=m; if(this.master) this.master.gain.setTargetAtTime(m?0:this.volume,this.ctx.currentTime,0.08);}
+  out(part,pan,vel){
+    const ctx=this.ctx;
+    const panner=ctx.createStereoPanner(); panner.pan.value=clamp(pan,-1,1);
+    const dry=ctx.createGain(); dry.gain.value=1.0;
+    panner.connect(dry); dry.connect(this.master);
+    const wet=ctx.createGain(); wet.gain.value=this.style.wet;
+    panner.connect(wet); wet.connect(this.reverb);
+    return {panner,ctx,t:ctx.currentTime+0.004};
+  }
+  env(g,t,a,d,sustain,rel,peak){
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(peak,t+a);
+    if(sustain>0){g.gain.setValueAtTime(peak,t+a+sustain);}
+    g.gain.exponentialRampToValueAtTime(0.0001,t+a+sustain+rel);
+  }
+  click(dest,t,vel,freq=2800){
+    const ctx=this.ctx,src=ctx.createBufferSource(); src.buffer=this.noise;
+    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=freq; bp.Q.value=0.8;
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.22*vel,t+0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+    src.connect(bp); bp.connect(g); g.connect(dest); src.start(t); src.stop(t+0.08);
+  }
+  tone(dest,t,type,freq,peak,attack,decay,detune=0){
+    const ctx=this.ctx,o=ctx.createOscillator(); o.type=type; o.frequency.value=freq; o.detune.value=detune;
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(peak,t+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+attack+decay);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t+attack+decay+0.05);
+    return o;
+  }
+  getPluck(freq){
+    const key=Math.round(freq*10);
+    if(this.ksCache.has(key)) return this.ksCache.get(key);
+    const ctx=this.ctx,sr=ctx.sampleRate,dur=Math.min(3.0,Math.max(1.2,6/Math.max(60,freq)));
+    const len=Math.floor(sr*dur),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+    const N=Math.max(2,Math.round(sr/freq));
+    const ring=new Float32Array(N);
+    for(let i=0;i<N;i++) ring[i]=Math.random()*2-1;
+    let lp=0; for(let i=0;i<N;i++){lp+=(ring[i]-lp)*0.5;ring[i]=lp;}
+    let idx=0;
+    for(let i=0;i<len;i++){
+      const cur=ring[idx],next=ring[(idx+1)%N];
+      d[i]=cur;
+      ring[idx]=(cur+next)*0.4985;
+      idx=(idx+1)%N;
+    }
+    // fade tail
+    for(let i=Math.floor(len*0.7);i<len;i++) d[i]*=(len-i)/(len*0.3);
+    this.ksCache.set(key,buf);
+    if(this.ksCache.size>48){const k=this.ksCache.keys().next().value;this.ksCache.delete(k);}
+    return buf;
+  }
+  play(part,freq,vel,pan){
+    if(!this.ready||!this.ctx||this.muted) return;
+    const {panner,ctx,t}=this.out(part,pan,vel);
+    const v=clamp(vel,0.08,1.0);
+    const fam=part.family;
+    if(fam==='marimba'||fam==='bass'){
+      const g=ctx.createGain(); g.connect(panner);
+      const base=fam==='bass'?0.55:0.5;
+      this.tone(g,t,'sine',freq,base*v,0.002,fam==='bass'?1.5:0.75);
+      this.tone(g,t,'sine',freq*2.0,0.15*v,0.002,fam==='bass'?0.9:0.35);
+      if(fam!=='bass') this.tone(g,t,'sine',freq*4.02,0.1*v,0.001,0.16);
+      this.tone(g,t,'triangle',freq*0.5,0.07*v,0.003,1.0);
+      this.click(panner,t,v*0.6,3400);
+      if(fam==='bass'){ this.tone(g,t,'sine',freq*0.5,0.35*v,0.003,1.4); }
+    } else if(fam==='bell'||fam==='gong'){
+      const g=ctx.createGain(); g.connect(panner);
+      const ratios=[1,2.01,2.76,3.94,5.2,6.81,8.4];
+      const gains=[0.34,0.26,0.2,0.15,0.11,0.07,0.045];
+      const decs=[4.2,3.4,2.6,2.0,1.5,1.1,0.8];
+      for(let i=0;i<ratios.length;i++){
+        const o=ctx.createOscillator(); o.type='sine';
+        o.frequency.value=freq*ratios[i]*(1+(Math.random()-0.5)*0.002);
+        const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+        og.gain.linearRampToValueAtTime(gains[i]*v,t+0.006);
+        og.gain.exponentialRampToValueAtTime(0.0001,t+decs[i]*(fam==='gong'?1.4:1));
+        o.connect(og); og.connect(g); o.start(t); o.stop(t+decs[i]+0.1);
+      }
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=7200; g.disconnect(); g.connect(lp); lp.connect(panner);
+      this.click(panner,t,v*0.5,4200);
+    } else if(fam==='glass'){
+      const g=ctx.createGain(); g.connect(panner);
+      const ratios=[1,2.71,5.15,8.21,11.7];
+      const gains=[0.35,0.22,0.15,0.08,0.04];
+      const decs=[3.6,2.6,1.8,1.2,0.8];
+      for(let i=0;i<ratios.length;i++){
+        const o=ctx.createOscillator(); o.type='sine';
+        o.frequency.value=freq*ratios[i]*(1+(Math.random()-0.5)*0.003);
+        const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+        og.gain.linearRampToValueAtTime(gains[i]*v,t+0.004);
+        og.gain.exponentialRampToValueAtTime(0.0001,t+decs[i]);
+        o.connect(og); og.connect(g); o.start(t); o.stop(t+decs[i]+0.1);
+      }
+      this.click(panner,t,v*0.45,6000);
+    } else if(fam==='string'){
+      const src=ctx.createBufferSource(); src.buffer=this.getPluck(freq);
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(9000,freq*9);
+      const g=ctx.createGain(); g.gain.value=0.55*v;
+      src.connect(lp); lp.connect(g); g.connect(panner);
+      const body=ctx.createOscillator(); body.type='sine'; body.frequency.value=freq*0.5;
+      const bg=ctx.createGain(); bg.gain.value=0.05*v; body.connect(bg); bg.connect(panner);
+      src.start(t); src.stop(t+src.buffer.duration); body.start(t); body.stop(t+1.2);
+      this.click(panner,t,v*0.3,5000);
+    } else if(fam==='drum'){
+      const type=part.drumType||'tom';
+      const g=ctx.createGain(); g.connect(panner);
+      if(type==='kick'){
+        const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(130,t);
+        o.frequency.exponentialRampToValueAtTime(42,t+0.22);
+        const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+        og.gain.linearRampToValueAtTime(0.9*v,t+0.004);
+        og.gain.exponentialRampToValueAtTime(0.0001,t+0.55);
+        o.connect(og); og.connect(g); o.start(t); o.stop(t+0.6);
+        this.click(panner,t,v*0.5,1200);
+      } else if(type==='snare'){
+        const src=ctx.createBufferSource(); src.buffer=this.noise;
+        const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1900; bp.Q.value=0.7;
+        const sg=ctx.createGain(); sg.gain.setValueAtTime(0.0001,t);
+        sg.gain.linearRampToValueAtTime(0.5*v,t+0.002);
+        sg.gain.exponentialRampToValueAtTime(0.0001,t+0.28);
+        src.connect(bp); bp.connect(sg); sg.connect(g); src.start(t); src.stop(t+0.3);
+        this.tone(g,t,'sine',190,0.28*v,0.002,0.16);
+      } else if(type==='tom'){
+        const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(freq*1.4,t);
+        o.frequency.exponentialRampToValueAtTime(freq*0.75,t+0.35);
+        const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+        og.gain.linearRampToValueAtTime(0.55*v,t+0.004);
+        og.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
+        o.connect(og); og.connect(g); o.start(t); o.stop(t+0.75);
+        this.click(panner,t,v*0.35,900);
+      } else { // cymbal / metal
+        const src=ctx.createBufferSource(); src.buffer=this.noise;
+        const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=5200;
+        const sg=ctx.createGain(); sg.gain.setValueAtTime(0.0001,t);
+        sg.gain.linearRampToValueAtTime(0.34*v,t+0.004);
+        sg.gain.exponentialRampToValueAtTime(0.0001,t+1.8);
+        src.connect(hp); hp.connect(sg); sg.connect(g); src.start(t); src.stop(t+1.9);
+        for(const [r,gg] of [[1.0,0.12],[1.7,0.09],[2.4,0.06]]){
+          this.tone(g,t,'square',freq*r,gg*v,0.003,1.3);
+        }
+      }
+    } else {
+      // organ / pipe
+      const g=ctx.createGain(); g.connect(panner);
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4000;
+      g.disconnect(); g.connect(lp); lp.connect(panner);
+      if(part.chip){
+        const o=ctx.createOscillator(); o.type='square'; o.frequency.value=freq;
+        const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+        og.gain.linearRampToValueAtTime(0.16*v,t+0.004);
+        og.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+        o.connect(og); og.connect(lp); o.start(t); o.stop(t+0.55);
+        this.tone(g,t,'triangle',freq*2,0.06*v,0.004,0.3);
+      } else {
+        const ratios=[1,2,3,4,6];
+        const gains=[0.3,0.18,0.12,0.07,0.04];
+        const vibOscs=[];
+        for(let i=0;i<ratios.length;i++){
+          const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=freq*ratios[i]; vibOscs.push(o);
+          const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t);
+          og.gain.linearRampToValueAtTime(gains[i]*v,t+0.08);
+          og.gain.setValueAtTime(gains[i]*v,t+0.45);
+          og.gain.exponentialRampToValueAtTime(0.0001,t+2.4);
+          o.connect(og); og.connect(g); o.start(t); o.stop(t+2.5);
+        }
+        const lfo=ctx.createOscillator(); lfo.frequency.value=5.2;
+        const lg=ctx.createGain(); lg.gain.value=2.5; lfo.connect(lg);
+        for(const o of vibOscs) lg.connect(o.detune);
+        lfo.start(t); lfo.stop(t+2.5);
+        const src=ctx.createBufferSource(); src.buffer=this.noise;
+        const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800;
+        const ng=ctx.createGain(); ng.gain.setValueAtTime(0.0001,t);
+        ng.gain.linearRampToValueAtTime(0.05*v,t+0.05);
+        ng.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+        src.connect(bp); bp.connect(ng); ng.connect(g); src.start(t); src.stop(t+0.55);
+      }
+    }
+  }
+}
+const audio=new AudioEngine();
+
+/* ---------------------------------------------------------------------------
+   RENDERER / SCENE / LIGHTS
+   ------------------------------------------------------------------------- */
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.28;
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x05080f);
+scene.fog=new THREE.FogExp2(0x05080f,0.0095);
+
+const bgGeo=new THREE.SphereGeometry(140,32,16);
+const bgMat=new THREE.ShaderMaterial({
+  side:THREE.BackSide, depthWrite:false,
+  vertexShader:`varying vec3 vP; void main(){vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`varying vec3 vP; void main(){
+    vec3 n=normalize(vP); float h=n.y;
+    vec3 low=vec3(0.012,0.018,0.030); vec3 mid=vec3(0.035,0.052,0.090); vec3 high=vec3(0.020,0.026,0.060);
+    vec3 col=mix(low,mid,smoothstep(-0.4,0.25,h)); col=mix(col,high,smoothstep(0.25,0.9,h));
+    float ang=atan(n.z,n.x);
+    float aur=exp(-pow((h-0.08)*7.0,2.0))*(0.5+0.5*sin(ang*3.0+0.7));
+    col+=vec3(0.030,0.070,0.095)*aur;
+    col+=vec3(0.055,0.030,0.045)*exp(-pow((h-0.42)*5.0,2.0))*(0.5+0.5*sin(ang*2.0-1.3));
+    gl_FragColor=vec4(col,1.0);
+  }`
+});
+const bgMesh=new THREE.Mesh(bgGeo,bgMat); scene.add(bgMesh);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,220);
+camera.position.set(0,12,46);
+camera.lookAt(0,20,0);
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,20,0);
+controls.enableDamping=true; controls.dampingFactor=0.07;
+controls.enablePan=false; controls.minDistance=11; controls.maxDistance=85;
+controls.maxPolarAngle=Math.PI*0.53; controls.minPolarAngle=0.12;
+controls.enabled=false;
+
+scene.add(new THREE.AmbientLight(0x6888a8,2.6));
+const hemi=new THREE.HemisphereLight(0xbcd4ff,0x4a2a10,2.1); scene.add(hemi);
+const keyLight=new THREE.DirectionalLight(0xffd8a8,4.2); keyLight.position.set(14,34,18); scene.add(keyLight);
+const rim=new THREE.DirectionalLight(0x6fc8ff,1.9); rim.position.set(-18,16,-14); scene.add(rim);
+const baseLight=new THREE.PointLight(0xff9a4a,210,48,2); baseLight.position.set(0,2.5,0); scene.add(baseLight);
+const crownLight=new THREE.PointLight(0x66d9ff,190,40,2); crownLight.position.set(0,24,0); scene.add(crownLight);
+const midLight=new THREE.PointLight(0xffc070,140,32,2); midLight.position.set(0,13,4); scene.add(midLight);
+const spot=new THREE.SpotLight(0xffd9b0,600,80,0.8,0.9,1.3); spot.position.set(18,24,18); spot.target.position.set(0,12,0); scene.add(spot); scene.add(spot.target);
+const fill=new THREE.DirectionalLight(0xffb070,2.4); fill.position.set(-8,8,30); scene.add(fill);
+const frontLight=new THREE.PointLight(0xffc890,210,34,1.8); frontLight.position.set(0,12,14); scene.add(frontLight);
+
+/* ---------------------------------------------------------------------------
+   PROCEDURAL TEXTURES
+   ------------------------------------------------------------------------- */
+function canvasTex(w,h,draw){
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const g=c.getContext('2d'); draw(g,w,h);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
+}
+const roseTex=canvasTex(512,512,(g,w,h)=>{
+  g.fillStyle='#000'; g.fillRect(0,0,w,h);
+  const cx=w/2,cy=h/2;
+  const cols=['#ffcf7a','#ff7e9e','#7fd4ff','#b58cff','#ffe6b0','#ff9a4a'];
+  for(let ring=0;ring<4;ring++){
+    const r0=30+ring*48,r1=r0+42;
+    const n=8+ring*4;
+    for(let i=0;i<n;i++){
+      const a=i/n*TAU+ring*0.2;
+      g.beginPath(); g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);
+      g.arc(cx,cy,r1,a,a+TAU/n*0.92); g.closePath();
+      g.fillStyle=cols[(i+ring)%cols.length]; g.globalAlpha=0.75; g.fill(); g.globalAlpha=1;
+    }
+  }
+  g.strokeStyle='#e6c27a'; g.lineWidth=3;
+  for(let ring=1;ring<5;ring++){g.beginPath();g.arc(cx,cy,30+ring*48,0,TAU);g.stroke();}
+  g.beginPath();g.arc(cx,cy,26,0,TAU);g.fillStyle='#ffe6b0';g.fill();
+  g.strokeStyle='#e6c27a'; g.lineWidth=4;
+  for(let i=0;i<12;i++){const a=i/12*TAU;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(a)*w*0.48,cy+Math.sin(a)*h*0.48);g.stroke();}
+});
+const stainedTex=canvasTex(256,512,(g,w,h)=>{
+  g.fillStyle='#000';g.fillRect(0,0,w,h);
+  const cols=['#ffcf7a','#ff7e9e','#7fd4ff','#b58cff','#ffe6b0'];
+  // gothic arch
+  g.beginPath();g.moveTo(20,h-20);g.lineTo(20,h*0.4);g.quadraticCurveTo(w/2,-40,w-20,h*0.4);g.lineTo(w-20,h-20);g.closePath();
+  g.fillStyle='#101820';g.fill();
+  g.save();g.clip();
+  for(let i=0;i<14;i++){
+    g.fillStyle=cols[i%cols.length];g.globalAlpha=0.8;
+    const x=(i*37)%w, y=(i*71)%h;
+    g.beginPath();g.arc(x,y,26+((i*13)%18),0,TAU);g.fill();
+  }
+  g.globalAlpha=1; g.restore();
+  g.strokeStyle='#e6c27a';g.lineWidth=4;
+  g.beginPath();g.moveTo(20,h-20);g.lineTo(20,h*0.4);g.quadraticCurveTo(w/2,-40,w-20,h*0.4);g.lineTo(w-20,h-20);g.stroke();
+  g.lineWidth=1.5;g.strokeStyle='#8a6a3a';
+  for(let i=1;i<5;i++){g.beginPath();g.moveTo(20+i*12,h-20);g.lineTo(20+i*12,h*0.42);g.stroke();}
+});
+const groundTex=canvasTex(1024,1024,(g,w,h)=>{
+  g.fillStyle='#070a10';g.fillRect(0,0,w,h);
+  const cx=w/2,cy=h/2;
+  for(let i=0;i<7;i++){
+    g.strokeStyle=i%2?'#e6c27a':'#5f8fb0'; g.globalAlpha=0.25+i*0.04; g.lineWidth=2+i*0.6;
+    g.beginPath();g.arc(cx,cy,90+i*62,0,TAU);g.stroke();
+  }
+  g.globalAlpha=0.5;
+  for(let i=0;i<24;i++){
+    const a=i/24*TAU; g.strokeStyle='#e6c27a'; g.lineWidth=1;
+    g.beginPath();g.moveTo(cx+Math.cos(a)*150,cy+Math.sin(a)*150);g.lineTo(cx+Math.cos(a)*430,cy+Math.sin(a)*430);g.stroke();
+  }
+  // runes
+  g.globalAlpha=0.7; g.strokeStyle='#8fd4ff'; g.lineWidth=2;
+  for(let i=0;i<16;i++){
+    const a=i/16*TAU+0.1, r=340;
+    const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+    g.save();g.translate(x,y);g.rotate(a);
+    g.beginPath();g.moveTo(-10,-14);g.lineTo(0,14);g.lineTo(10,-14);g.stroke();
+    g.restore();
+  }
+  g.globalAlpha=1;
+});
+const ballGlowTex=canvasTex(128,128,(g,w,h)=>{
+  const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.25,'rgba(255,220,160,0.9)');
+  gr.addColorStop(0.55,'rgba(255,160,70,0.35)');gr.addColorStop(1,'rgba(255,120,30,0)');
+  g.fillStyle=gr;g.fillRect(0,0,w,h);
+});
+const sparkTex=canvasTex(64,64,(g,w,h)=>{
+  const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.4,'rgba(255,230,180,0.8)');gr.addColorStop(1,'rgba(255,180,80,0)');
+  g.fillStyle=gr;g.fillRect(0,0,w,h);
+});
+
+/* ---------------------------------------------------------------------------
+   MATERIALS
+   ------------------------------------------------------------------------- */
+const MAT={
+  stone:new THREE.MeshStandardMaterial({color:0x26313f,roughness:0.92,metalness:0.08,emissive:0x0a1018,emissiveIntensity:0.4}),
+  darkStone:new THREE.MeshStandardMaterial({color:0x141c27,roughness:0.95,metalness:0.05,emissive:0x080e16,emissiveIntensity:0.4}),
+  brass:new THREE.MeshStandardMaterial({color:0xb98a3e,roughness:0.32,metalness:0.88,emissive:0x3a2408,emissiveIntensity:0.7}),
+  copper:new THREE.MeshStandardMaterial({color:0x8f5a33,roughness:0.45,metalness:0.75,emissive:0x2a1206,emissiveIntensity:0.5}),
+  bronze:new THREE.MeshStandardMaterial({color:0xd4a44a,roughness:0.25,metalness:0.92,emissive:0x4a2e08,emissiveIntensity:0.65}),
+  wood:new THREE.MeshStandardMaterial({color:0x8a5530,roughness:0.72,metalness:0.05,emissive:0x2a1408,emissiveIntensity:0.55}),
+  woodLight:new THREE.MeshStandardMaterial({color:0xb07a44,roughness:0.7,metalness:0.04,emissive:0x2a1a08,emissiveIntensity:0.55}),
+  skin:new THREE.MeshStandardMaterial({color:0xd8cfc0,roughness:0.85,metalness:0.02,side:THREE.DoubleSide,emissive:0x1a1a18,emissiveIntensity:0.25}),
+  glass:new THREE.MeshStandardMaterial({color:0x9fd8ee,roughness:0.08,metalness:0.15,transparent:true,opacity:0.22,emissive:0x1e5068,emissiveIntensity:1.3,side:THREE.DoubleSide,depthWrite:false}),
+  glow:new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false}),
+  cyanGlow:new THREE.MeshBasicMaterial({color:0x8fe6ff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false}),
+  stringMat:new THREE.MeshStandardMaterial({color:0xe8dcc0,roughness:0.25,metalness:0.8,emissive:0x221a10,emissiveIntensity:0.3}),
+  ball:new THREE.MeshStandardMaterial({color:0xffd9a0,roughness:0.18,metalness:0.9,emissive:0xff8a2a,emissiveIntensity:1.6}),
+  userBall:new THREE.MeshStandardMaterial({color:0xbff4ff,roughness:0.12,metalness:0.9,emissive:0x2fa8ff,emissiveIntensity:1.8}),
+};
+
+/* ---------------------------------------------------------------------------
+   PHYSICS
+   ------------------------------------------------------------------------- */
+const world=new CANNON.World({gravity:new CANNON.Vec3(0,-GRAV,0)});
+world.broadphase=new CANNON.SAPBroadphase(world);
+world.allowSleep=false;
+world.solver.iterations=10;
+world.solver.tolerance=0.001;
+const ballPhysMat=new CANNON.Material('ball');
+const partPhysMat=new CANNON.Material('part');
+world.addContactMaterial(new CANNON.ContactMaterial(ballPhysMat,partPhysMat,{friction:0.32,restitution:0.28}));
+world.defaultContactMaterial.friction=0.4;
+world.defaultContactMaterial.restitution=0.2;
+
+const machineGroup=new THREE.Group(); scene.add(machineGroup);
+const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:ballGlowTex,color:0xffb060,transparent:true,opacity:0.075,blending:THREE.AdditiveBlending,depthWrite:false}));
+halo.scale.set(58,58,1); halo.position.set(0,12,0); scene.add(halo);
+const staticGeos={stone:[],darkStone:[],brass:[],copper:[],bronze:[],wood:[],woodLight:[],glass:[],glow:[]};
+function addGeo(geo,matKey,pos,quat,scale){
+  const g=geo.clone();
+  const m=new THREE.Matrix4();
+  const q=quat||new THREE.Quaternion();
+  const s=scale||new THREE.Vector3(1,1,1);
+  m.compose(pos||new THREE.Vector3(),q,s);
+  g.applyMatrix4(m);
+  staticGeos[matKey].push(g);
+}
+function finalizeStatic(){
+  for(const k in staticGeos){
+    if(!staticGeos[k].length) continue;
+    const merged=mergeGeometries(staticGeos[k],false);
+    if(!merged) continue;
+    const mesh=new THREE.Mesh(merged,MAT[k]);
+    mesh.frustumCulled=false;
+    machineGroup.add(mesh);
+    staticGeos[k].forEach(g=>g.dispose());
+  }
+}
+function addBody(shape,pos,quat,opts={}){
+  const body=new CANNON.Body(Object.assign({mass:0,shape,position:pos,material:partPhysMat},opts));
+  if(quat) body.quaternion.copy(quat);
+  world.addBody(body);
+  return body;
+}
+function boxBody(hx,hy,hz,pos,quat,opts={}){
+  return addBody(new CANNON.Box(new CANNON.Vec3(hx,hy,hz)),pos,quat,opts);
+}
+
+/* ---------------------------------------------------------------------------
+   STRUCTURE — cathedral frame, tiers, crown, lift, base
+   ------------------------------------------------------------------------- */
+const structure={rings:[],gears:[],liftMesh:null,pulseRings:[]};
+function buildStructure(){
+  // ground
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(70,64),
+    new THREE.MeshStandardMaterial({map:groundTex,color:0xb8c8d8,roughness:0.9,metalness:0.15,emissive:0x2a3a50,emissiveIntensity:0.7}));
+  ground.rotation.x=-Math.PI/2; ground.position.y=-0.02; scene.add(ground);
+  // star field
+  const starGeo=new THREE.BufferGeometry();
+  const starPos=new Float32Array(900*3);
+  for(let i=0;i<900;i++){
+    const r=rand(45,120), th=rand(0,TAU), ph=rand(-0.3,1.4);
+    starPos[i*3]=Math.cos(th)*Math.cos(ph)*r;
+    starPos[i*3+1]=Math.sin(ph)*r+10;
+    starPos[i*3+2]=Math.sin(th)*Math.cos(ph)*r;
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+  const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9fc8ff,size:0.45,transparent:true,opacity:0.6,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
+  scene.add(stars);
+
+  // stepped base
+  for(let i=0;i<5;i++){
+    const r=14.2-i*1.25, h=0.42;
+    addGeo(new THREE.CylinderGeometry(r,r+0.35,h,48),'darkStone',new THREE.Vector3(0,h/2+i*0.34,0));
+    addGeo(new THREE.TorusGeometry(r-0.1,0.06,6,48),'brass',new THREE.Vector3(0,h+i*0.34,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+  }
+  // glowing drain ring
+  const drain=new THREE.Mesh(new THREE.TorusGeometry(4.6,0.09,8,64),MAT.glow);
+  drain.rotation.x=Math.PI/2; drain.position.y=2.05; scene.add(drain); structure.rings.push(drain);
+  const drain2=new THREE.Mesh(new THREE.TorusGeometry(5.3,0.04,8,64),MAT.cyanGlow);
+  drain2.rotation.x=Math.PI/2; drain2.position.y=2.02; scene.add(drain2);
+  const baseRing=new THREE.Mesh(new THREE.TorusGeometry(12.6,0.05,6,72),MAT.glow);
+  baseRing.rotation.x=Math.PI/2; baseRing.position.y=1.72; scene.add(baseRing); structure.rings.push(baseRing);
+
+  // central spire (tapered octagonal tower)
+  addGeo(new THREE.CylinderGeometry(1.9,3.35,27,8,1,false),'stone',new THREE.Vector3(0,13.5,0));
+  // glass core
+  addGeo(new THREE.CylinderGeometry(1.45,2.4,27,8,1,true),'glass',new THREE.Vector3(0,13.5,0));
+  // vertical ribs
+  for(let i=0;i<8;i++){
+    const a=i/8*TAU;
+    const r=2.4;
+    addGeo(new THREE.BoxGeometry(0.12,27,0.12),'brass',new THREE.Vector3(Math.cos(a)*r,13.5,Math.sin(a)*r),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-a,0)));
+  }
+  // glowing vertical strips on the spire
+  for(let i=0;i<4;i++){
+    const a=i/4*TAU+0.4;
+    addGeo(new THREE.BoxGeometry(0.055,25.5,0.055),'glow',new THREE.Vector3(Math.cos(a)*2.05,13.4,Math.sin(a)*2.05));
+  }
+  // tier platforms, columns, railings, canopies
+  for(let t=0;t<TIER_Y.length;t++){
+    const y=TIER_Y[t];
+    const inner=3.2, outer=9.15;
+    // platform ring
+    const ringGeo=new THREE.RingGeometry(inner,outer,64,1);
+    addGeo(ringGeo,'darkStone',new THREE.Vector3(0,y,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0)));
+    const ringGeo2=new THREE.RingGeometry(inner,outer,64,1);
+    addGeo(ringGeo2,'stone',new THREE.Vector3(0,y-0.18,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0)));
+    // edge torus
+    addGeo(new THREE.TorusGeometry(outer,0.13,8,64),'brass',new THREE.Vector3(0,y,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    addGeo(new THREE.TorusGeometry(outer+0.06,0.035,6,64),'glow',new THREE.Vector3(0,y+0.05,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    // inner torus
+    addGeo(new THREE.TorusGeometry(inner,0.08,8,48),'copper',new THREE.Vector3(0,y,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    // radial beams
+    for(let i=0;i<8;i++){
+      const a=i/8*TAU+t*0.12;
+      const rmid=(inner+outer)/2;
+      addGeo(new THREE.BoxGeometry(outer-inner,0.1,0.16),'brass',new THREE.Vector3(Math.cos(a)*rmid,y-0.3,Math.sin(a)*rmid),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-a,0)));
+    }
+    // 8 columns at outer radius
+    for(let i=0;i<8;i++){
+      const a=i/8*TAU+t*0.12;
+      const x=Math.cos(a)*8.95,z=Math.sin(a)*8.95;
+      addGeo(new THREE.CylinderGeometry(0.16,0.22,TIER_SPACING-0.3,8),'stone',new THREE.Vector3(x,y+TIER_SPACING/2-0.15,z));
+      addGeo(new THREE.CylinderGeometry(0.24,0.24,0.16,10),'brass',new THREE.Vector3(x,y+0.1,z));
+      addGeo(new THREE.CylinderGeometry(0.24,0.24,0.16,10),'brass',new THREE.Vector3(x,y+TIER_SPACING-0.35,z));
+      // pointed arch: half torus between columns
+      if(i<8){
+        const a2=(i+1)/8*TAU+t*0.12;
+        const mx=(Math.cos(a)+Math.cos(a2))*4.475, mz=(Math.sin(a)+Math.sin(a2))*4.475;
+        const arch=new THREE.TorusGeometry(1.05,0.08,6,14,Math.PI);
+        const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-(a+a2)/2,0));
+        addGeo(arch,'brass',new THREE.Vector3(mx,y+TIER_SPACING-0.4,mz),q);
+      }
+    }
+    // railing
+    addGeo(new THREE.TorusGeometry(outer-0.15,0.05,6,64),'brass',new THREE.Vector3(0,y+0.95,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    for(let i=0;i<64;i++){
+      const a=i/64*TAU;
+      addGeo(new THREE.BoxGeometry(0.035,0.9,0.035),'brass',new THREE.Vector3(Math.cos(a)*(outer-0.15),y+0.48,Math.sin(a)*(outer-0.15)));
+    }
+    // canopy ring (hoppers hang below it)
+    const canY=y+3.75;
+    addGeo(new THREE.TorusGeometry(7.6,0.12,8,64),'copper',new THREE.Vector3(0,canY,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    addGeo(new THREE.TorusGeometry(5.6,0.06,8,48),'brass',new THREE.Vector3(0,canY,0),new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)));
+    for(let i=0;i<12;i++){
+      const a=i/12*TAU+t*0.2;
+      addGeo(new THREE.BoxGeometry(2.0,0.06,0.12),'brass',new THREE.Vector3(Math.cos(a)*6.6,canY,Math.sin(a)*6.6),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-a,0)));
+    }
+    // stained glass panels on the spire between tiers
+    for(let i=0;i<4;i++){
+      const a=i/4*TAU+0.4+t*0.1;
+      const panel=new THREE.Mesh(new THREE.PlaneGeometry(1.9,3.2),new THREE.MeshBasicMaterial({map:stainedTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.75}));
+      panel.position.set(Math.cos(a)*2.55,y+1.5,Math.sin(a)*2.55);
+      panel.lookAt(0,y+1.5,0); panel.rotateY(Math.PI);
+      scene.add(panel);
+    }
+    // hanging lanterns
+    for(let i=0;i<8;i++){
+      const a=i/8*TAU+0.2;
+      const x=Math.cos(a)*6.3,z=Math.sin(a)*6.3;
+      addGeo(new THREE.CylinderGeometry(0.02,0.02,0.9,5),'brass',new THREE.Vector3(x,y+2.85,z));
+      addGeo(new THREE.SphereGeometry(0.16,10,8),'glow',new THREE.Vector3(x,y+2.35,z));
+    }
+  }
+
+  // crown: gears, rotating rings, beacon
+  const crownY=27.2;
+  addGeo(new THREE.CylinderGeometry(2.6,2.2,0.5,16),'brass',new THREE.Vector3(0,crownY,0));
+  for(let i=0;i<16;i++){
+    const a=i/16*TAU;
+    addGeo(new THREE.BoxGeometry(0.5,0.28,0.16),'brass',new THREE.Vector3(Math.cos(a)*2.9,crownY+0.2,Math.sin(a)*2.9),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-a,0)));
+  }
+  const crownGear=new THREE.Group();
+  const gearRing=new THREE.Mesh(new THREE.TorusGeometry(2.5,0.12,8,48),MAT.bronze); crownGear.add(gearRing);
+  for(let i=0;i<12;i++){
+    const a=i/12*TAU;
+    const tooth=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.22,0.22),MAT.bronze);
+    tooth.position.set(Math.cos(a)*2.9,0,Math.sin(a)*2.9); tooth.rotation.y=-a; crownGear.add(tooth);
+  }
+  crownGear.position.y=crownY+0.9; scene.add(crownGear); structure.gears.push(crownGear);
+  // beacon
+  const beacon=new THREE.Mesh(new THREE.IcosahedronGeometry(0.55,1),new THREE.MeshBasicMaterial({color:0xffe6b0}));
+  beacon.position.y=crownY+1.7; scene.add(beacon); structure.beacon=beacon;
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(0.9,0.03,6,32),MAT.glow);
+  halo.position.y=crownY+1.7; halo.rotation.x=Math.PI/2; scene.add(halo); structure.rings.push(halo);
+
+  // central helix lift
+  const helixPts=[];
+  for(let i=0;i<=240;i++){
+    const t=i/240, a=t*TAU*4.2+0.5;
+    helixPts.push(new THREE.Vector3(Math.cos(a)*2.75,1.2+t*20.5,Math.sin(a)*2.75));
+  }
+  const helixCurve=new THREE.CatmullRomCurve3(helixPts);
+  const helixGeo=new THREE.TubeGeometry(helixCurve,220,0.055,5,false);
+  const helix=new THREE.Mesh(helixGeo,new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(helix); structure.liftMesh=helix;
+  const helix2=new THREE.Mesh(new THREE.TubeGeometry(helixCurve,220,0.13,5,false),new THREE.MeshBasicMaterial({color:0x2a6a8a,transparent:true,opacity:0.15,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(helix2);
+  // rotating rings around the spire
+  for(const y of [6.2,11.0,15.8,20.5]){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(2.15,0.05,6,48),MAT.cyanGlow);
+    ring.rotation.x=Math.PI/2; ring.position.y=y; scene.add(ring); structure.rings.push(ring);
+  }
+  // pendulum
+  const pivot=new THREE.Group(); pivot.position.set(0,3.2,10.5); scene.add(pivot);
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,3.4,6),MAT.brass);
+  rod.position.y=-1.7; pivot.add(rod);
+  const bob=new THREE.Mesh(new THREE.SphereGeometry(0.34,16,12),MAT.bronze);
+  bob.position.y=-3.4; pivot.add(bob);
+  const bobGlow=new THREE.Mesh(new THREE.SphereGeometry(0.46,12,10),new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false}));
+  bobGlow.position.y=-3.4; pivot.add(bobGlow);
+  structure.pendulum=pivot;
+
+  // rose windows at crown
+  for(let i=0;i<4;i++){
+    const a=i/4*TAU+0.2;
+    const plane=new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),new THREE.MeshBasicMaterial({map:roseTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.9}));
+    plane.position.set(Math.cos(a)*2.9,25.3,Math.sin(a)*2.9);
+    plane.lookAt(0,25.3,0); plane.rotateY(Math.PI);
+    scene.add(plane);
+  }
+  // light shafts
+  for(let i=0;i<3;i++){
+    const a=i/3*TAU+0.7;
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(3.4,20,24,1,true),
+      new THREE.MeshBasicMaterial({color:i===0?0xffcf7a:i===1?0x8fe6ff:0xff9ec4,transparent:true,opacity:0.035,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    cone.position.set(Math.cos(a)*4.5,14,Math.sin(a)*4.5); cone.rotation.z=Math.cos(a)*0.12; scene.add(cone);
+  }
+  finalizeStatic();
+}
+
+/* ---------------------------------------------------------------------------
+   PARTS / INSTRUMENTS
+   ------------------------------------------------------------------------- */
+const parts=[];
+const partByFamily={};
+let partSeq=0;
+const TUBE_TEX=canvasTex(32,256,(g,w,h)=>{
+  g.fillStyle='rgba(20,40,55,0.3)';g.fillRect(0,0,w,h);
+  for(let i=0;i<10;i++){
+    const y=(i*29)%h; const gr=g.createLinearGradient(0,y,0,y+8);
+    gr.addColorStop(0,'rgba(120,220,255,0)');gr.addColorStop(0.5,'rgba(160,240,255,0.9)');gr.addColorStop(1,'rgba(120,220,255,0)');
+    g.fillStyle=gr;g.fillRect(0,y,w,8);
+  }
+});
+
+function makePart(family,tier,slot,angle){
+  const y=TIER_Y[tier]+1.0;
+  const x=Math.cos(angle)*PART_RADIUS, z=Math.sin(angle)*PART_RADIUS;
+  const group=new THREE.Group();
+  group.position.set(x,y,z);
+  group.rotation.y=Math.PI/2-angle;
+  machineGroup.add(group);
+  const p={
+    id:`${family}-${tier}-${slot}`, family, tier, slot, angle, x, y, z,
+    group, pos:new THREE.Vector3(x,y,z), mouthY:y+DROP_HEIGHT,
+    freq:220, noteName:'A3', tuneScale:1, targetFreq:220, travel:Math.sqrt(2*DROP_HEIGHT/GRAV)+0.03,
+    lastHit:0, pulse:0, glow:null, strings:[], vib:0, drumType:null, chip:false,
+    strikeBody:null, mouthRing:null, hopper:null, tuneVis:[]
+  };
+  buildInstrument(p);
+  // strike collider
+  let hx=0.5,hy=0.055,hz=0.4,tilt=-0.14;
+  if(family==='marimba'){hx=1.15;hy=0.07;hz=0.26;}
+  if(family==='bass'){hx=1.35;hy=0.08;hz=0.38;}
+  if(family==='bell'){hx=0.3;hy=0.06;hz=0.3;}
+  if(family==='string'){hx=0.42;hy=0.05;hz=0.3;}
+  if(family==='glass'){hx=0.34;hy=0.05;hz=0.34;}
+  if(family==='drum'){hx=0.78;hy=0.05;hz=0.78;}
+  if(family==='gong'){hx=0.85;hy=0.06;hz=0.85;}
+  const localQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt,0,0));
+  const bodyPos=new THREE.Vector3(0,-hy,0).applyQuaternion(group.quaternion).add(group.position);
+  const bodyQ=group.quaternion.clone().multiply(localQ);
+  const body=boxBody(hx,hy,hz,new CANNON.Vec3(bodyPos.x,bodyPos.y,bodyPos.z),bodyQ,{material:partPhysMat});
+  p.strikeBody=body;
+  body.part=p;
+  body.addEventListener('collide',(e)=>{
+    const other=e.body;
+    if(!other||!other.isBall) return;
+    const impact=Math.abs(e.contact?e.contact.getImpactVelocityAlongNormal():other.velocity.length());
+    if(impact<0.75) return;
+    const now=performance.now()/1000;
+    if(now-p.lastHit<0.07) return;
+    p.lastHit=now;
+    onPartHit(p,impact,other);
+  });
+  // drop tube (visual merged later per tier, plus colliders)
+  addTube(p);
+  // hopper
+  addHopper(p);
+  parts.push(p);
+  (partByFamily[family]||(partByFamily[family]=[])).push(p);
+  return p;
+}
+
+function addTube(p){
+  const top=p.mouthY-0.25, bottom=p.y+0.5, h=top-bottom, cy=(top+bottom)/2;
+  const wallH=h/2;
+  const off=0.255, thick=0.03, half=0.23;
+  // four walls
+  boxBody(thick,wallH,half,new CANNON.Vec3(p.x+off,cy,p.z));
+  boxBody(thick,wallH,half,new CANNON.Vec3(p.x-off,cy,p.z));
+  boxBody(half,wallH,thick,new CANNON.Vec3(p.x,cy,p.z+off));
+  boxBody(half,wallH,thick,new CANNON.Vec3(p.x,cy,p.z-off));
+  // visual tube, merged into a per-tier list later
+  const geo=new THREE.CylinderGeometry(0.29,0.29,h,14,1,true);
+  const mesh=new THREE.Mesh(geo,MAT.glass);
+  mesh.position.set(p.x,cy,p.z);
+  const tex=TUBE_TEX.clone(); tex.needsUpdate=true;
+  const m=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false});
+  const glow=new THREE.Mesh(new THREE.CylinderGeometry(0.295,0.295,h,14,1,true),m);
+  glow.position.copy(mesh.position);
+  scene.add(mesh); scene.add(glow);
+  p.tubeMesh=mesh; p.tubeGlow=glow;
+}
+
+function addHopper(p){
+  const hopperY=p.mouthY+0.28;
+  const cone=new THREE.Mesh(new THREE.CylinderGeometry(0.52,0.3,0.42,16,1,true),MAT.brass);
+  cone.position.set(p.x,hopperY,p.z); scene.add(cone);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(0.52,0.035,6,20),MAT.brass);
+  rim.rotation.x=Math.PI/2; rim.position.set(p.x,hopperY+0.21,p.z); scene.add(rim);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.31,0.025,6,20),MAT.glow);
+  ring.rotation.x=Math.PI/2; ring.position.set(p.x,p.mouthY+0.02,p.z); ring.visible=false;
+  scene.add(ring); p.mouthRing=ring;
+  // decorative reserve balls in the hopper
+  for(let i=0;i<3;i++){
+    const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6),MAT.glow);
+    b.position.set(p.x+rand(-0.1,0.1),hopperY+0.05+i*0.09,p.z+rand(-0.1,0.1));
+    scene.add(b);
+  }
+  // aura
+  const aura=new THREE.Sprite(new THREE.SpriteMaterial({map:ballGlowTex,color:0xffcf7a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  aura.scale.set(2.6,2.6,1); aura.position.set(p.x,p.y+0.35,p.z); scene.add(aura); p.glow=aura;
+}
+
+function buildInstrument(p){
+  const g=p.group;
+  const fam=p.family;
+  if(fam==='marimba'||fam==='bass'){
+    const big=fam==='bass';
+    const barLen=big?2.7:2.2, barW=big?0.62:0.5, barH=big?0.22:0.16;
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(barLen,barH,barW),big?MAT.wood:MAT.woodLight);
+    bar.rotation.x=-0.14; bar.position.y=0.02; g.add(bar); p.tuneVis.push({mesh:bar,base:barLen,axis:'x'});
+    const strip=new THREE.Mesh(new THREE.BoxGeometry(barLen*0.82,0.018,0.035),MAT.glow);
+    strip.position.y=barH/2+0.012; bar.add(strip);
+    for(const ex of [-0.46,0.46]){
+      const cap=new THREE.Mesh(new THREE.BoxGeometry(0.08,barH*1.2,barW*0.9),MAT.brass);
+      cap.position.x=ex; bar.add(cap);
+    }
+    // resonator tubes
+    for(const dx of [-barLen*0.28,barLen*0.28]){
+      const tube=new THREE.Mesh(new THREE.CylinderGeometry(big?0.2:0.13,big?0.22:0.15,big?2.0:1.3,12),MAT.brass);
+      tube.position.set(dx,-0.42,0); g.add(tube);
+      const cap=new THREE.Mesh(new THREE.TorusGeometry(big?0.2:0.13,0.02,6,16),MAT.bronze);
+      cap.rotation.x=Math.PI/2; cap.position.set(dx,-0.1,0); g.add(cap);
+      const gring=new THREE.Mesh(new THREE.TorusGeometry(big?0.23:0.16,0.012,4,16),MAT.glow);
+      gring.rotation.x=Math.PI/2; gring.position.set(dx,0.02,0); g.add(gring);
+    }
+    // frame
+    for(const dx of [-barLen*0.55,barLen*0.55]){
+      const leg=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.25,0.1),MAT.brass); leg.position.set(dx,-0.65,0.25); g.add(leg);
+      const leg2=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.25,0.1),MAT.brass); leg2.position.set(dx,-0.65,-0.25); g.add(leg2);
+    }
+    // mallet heads on posts
+    for(const dx of [-barLen*0.7,barLen*0.7]){
+      const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.8,6),MAT.brass); post.position.set(dx,-0.4,0); g.add(post);
+      const ball=new THREE.Mesh(new THREE.SphereGeometry(0.09,10,8),MAT.wood); ball.position.set(dx,-0.02,0); g.add(ball);
+    }
+  } else if(fam==='bell'){
+    // hanging bronze tube, cap at y=0
+    const len=1.5;
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.23,len,16,1,true),MAT.bronze);
+    tube.position.y=-len/2-0.05; g.add(tube); p.tuneVis.push({mesh:tube,base:len,axis:'y',center:-len/2-0.05});
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.2,0.1,16),MAT.bronze);
+    cap.position.y=-0.02; g.add(cap);
+    const crown=new THREE.Mesh(new THREE.TorusGeometry(0.26,0.04,6,18),MAT.brass);
+    crown.rotation.x=Math.PI/2; crown.position.y=0.02; g.add(crown);
+    const bglow=new THREE.Mesh(new THREE.TorusGeometry(0.245,0.012,4,20),MAT.glow);
+    bglow.rotation.x=Math.PI/2; bglow.position.y=-0.08; g.add(bglow);
+    const chain=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,1.0,5),MAT.brass);
+    chain.position.set(0,0.5,-0.22); g.add(chain);
+    const clapper=new THREE.Mesh(new THREE.SphereGeometry(0.1,10,8),MAT.copper);
+    clapper.position.y=-len*0.8; g.add(clapper); p.clapper=clapper;
+    // stand
+    const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,0.9,6),MAT.brass);
+    stand.position.set(0.42,-0.45,0); g.add(stand);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.05),MAT.brass);
+    arm.position.set(0.25,-0.02,0); g.add(arm);
+  } else if(fam==='string'){
+    // lyre frame and one string with a plucker paddle
+    const frameMat=MAT.wood;
+    const base=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.18,0.5),frameMat); base.position.y=-0.35; g.add(base);
+    const left=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.1,2.0,8),frameMat); left.position.set(-0.65,0.6,0); g.add(left);
+    const right=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.1,2.0,8),frameMat); right.position.set(0.65,0.6,0); g.add(right);
+    const top=new THREE.Mesh(new THREE.TorusGeometry(0.68,0.07,6,24,Math.PI),frameMat); top.position.y=1.58; g.add(top);
+    const bridge=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.1,0.22),MAT.brass); bridge.position.y=-0.05; g.add(bridge);
+    // string
+    const str=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,1.7,5),MAT.stringMat);
+    str.position.set(0,0.8,0.05); g.add(str); p.strings.push(str);
+    const sglow=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.7,5),MAT.cyanGlow);
+    sglow.position.set(0,0.8,0.055); g.add(sglow); p.stringGlow=sglow;
+    // plucker paddle at strike point
+    const paddle=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.05,0.35),MAT.brass);
+    paddle.rotation.x=-0.14; paddle.position.y=0.03; g.add(paddle); p.paddle=paddle;
+    // tuning pegs
+    for(let i=0;i<5;i++){
+      const peg=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),MAT.bronze);
+      peg.position.set(-0.45+i*0.22,1.45,0.1); g.add(peg);
+    }
+  } else if(fam==='drum'){
+    const types=['kick','snare','tom','cymbal'];
+    const type=types[p.slot%4]; p.drumType=type;
+    const big=type==='kick'?1.15:type==='snare'?0.9:type==='cymbal'?1.0:0.95;
+    if(type==='cymbal'){
+      const disc=new THREE.Mesh(new THREE.CylinderGeometry(big,big,0.06,32),MAT.bronze);
+      disc.rotation.x=-0.14; disc.position.y=0; g.add(disc);
+      const bell=new THREE.Mesh(new THREE.SphereGeometry(0.18,12,8),MAT.brass); bell.position.y=0.06; g.add(bell);
+      const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,1.0,6),MAT.brass); stand.position.y=-0.5; g.add(stand);
+    } else {
+      const shell=new THREE.Mesh(new THREE.CylinderGeometry(big,big*0.92,0.75,24,1,true),type==='kick'?MAT.wood:MAT.copper);
+      shell.position.y=-0.4; g.add(shell);
+      const mem=new THREE.Mesh(new THREE.CircleGeometry(big*0.97,32),MAT.skin);
+      mem.rotation.x=-Math.PI/2-0.14; mem.position.y=0.02; g.add(mem); p.membrane=mem;
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(big,0.05,6,32),MAT.brass);
+      rim.rotation.x=Math.PI/2-0.14; rim.position.y=0.02; g.add(rim);
+      const dglow=new THREE.Mesh(new THREE.TorusGeometry(big*1.02,0.012,4,32),MAT.glow);
+      dglow.rotation.x=Math.PI/2-0.14; dglow.position.y=0.03; g.add(dglow);
+      for(let i=0;i<8;i++){
+        const a=i/8*TAU;
+        const lug=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.3,0.08),MAT.brass);
+        lug.position.set(Math.cos(a)*big,-0.25,Math.sin(a)*big); g.add(lug);
+      }
+      const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.09,0.9,6),MAT.brass); stand.position.y=-0.85; g.add(stand);
+    }
+  } else if(fam==='gong'){
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.08,32),MAT.bronze);
+    disc.rotation.x=-0.2; disc.position.y=0; g.add(disc);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.9,0.06,6,32),MAT.bronze);
+    rim.rotation.x=Math.PI/2-0.2; rim.position.y=0; g.add(rim);
+    const gglow=new THREE.Mesh(new THREE.TorusGeometry(0.93,0.012,4,32),MAT.glow);
+    gglow.rotation.x=Math.PI/2-0.2; gglow.position.y=0.01; g.add(gglow);
+    const boss=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,8),MAT.brass); boss.position.y=0.08; g.add(boss);
+    const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,1.1,6),MAT.brass); stand.position.y=-0.6; g.add(stand);
+    const arms=[];
+    for(const s of [-1,1]){
+      const arm=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.8,0.05),MAT.brass);
+      arm.position.set(s*0.75,-0.3,0); arm.rotation.z=s*0.25; g.add(arm); arms.push(arm);
+    }
+  } else if(fam==='glass'){
+    // glass chime with brass striker cap
+    const len=1.8;
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.26,len,16,1,true),MAT.glass);
+    tube.position.y=-len/2-0.05; g.add(tube); p.tuneVis.push({mesh:tube,base:len,axis:'y',center:-len/2-0.05});
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.24,0.08,16),MAT.brass);
+    cap.position.y=0; g.add(cap);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.03,6,18),MAT.glow);
+    rim.rotation.x=Math.PI/2; rim.position.y=0.04; g.add(rim); p.glowRing=rim;
+    const inner=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,len*0.8,8),MAT.cyanGlow);
+    inner.position.y=-len/2; inner.material=MAT.cyanGlow; g.add(inner);
+    const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,0.8,6),MAT.brass); stand.position.y=-len-0.2; g.add(stand);
+    p.chip=false;
+  }
+  // base plinth under each instrument
+  const plinth=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.0,0.18,16),MAT.darkStone);
+  plinth.position.y=-1.0; g.add(plinth);
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(0.98,0.025,6,24),p.family==='bell'||p.family==='glass'?MAT.cyanGlow:MAT.glow);
+  halo.rotation.x=Math.PI/2; halo.position.y=-0.92; g.add(halo);
+}
+
+function buildParts(){
+  const layouts=[
+    ['drum','drum','drum','drum','gong','bass','bass','bass'],
+    ['marimba','marimba','marimba','marimba','marimba','marimba','marimba','marimba'],
+    ['bell','bell','bell','bell','bell','bell','bell','bell'],
+    ['string','string','string','string','string','string','string','string'],
+    ['glass','glass','glass','glass','glass','glass','glass','glass'],
+  ];
+  for(let t=0;t<5;t++){
+    const n=layouts[t].length;
+    for(let s=0;s<n;s++){
+      const angle=(s/n)*TAU+t*0.28+0.15;
+      makePart(layouts[t][s],t,s,angle);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   HIT RESPONSE
+   ------------------------------------------------------------------------- */
+const hits=[];
+const releases=[];
+let hitCount=0;
+const recentHits=[];
+const ringsPool=[];
+let shake=0;
+function makeRingPool(){
+  for(let i=0;i<24;i++){
+    const m=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.02,4,24),new THREE.MeshBasicMaterial({color:0xffcf7a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+    m.visible=false; scene.add(m); ringsPool.push({mesh:m,life:0,max:1});
+  }
+}
+function spawnRing(pos,color){
+  const r=ringsPool.find(x=>x.life<=0)||ringsPool[0];
+  r.mesh.position.copy(pos); r.mesh.material.color.set(color||0xffcf7a);
+  r.mesh.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+  r.mesh.visible=true; r.life=0.6; r.max=0.6;
+}
+function onPartHit(p,impact,ball){
+  const now=performance.now();
+  const vel=clamp(impact/9,0.15,1.0);
+  const freq=p.freq;
+  const note=p.noteName;
+  // spatial pan from camera
+  const camDir=new THREE.Vector3(); camera.getWorldDirection(camDir);
+  const right=new THREE.Vector3().crossVectors(camDir,camera.up).normalize();
+  const toPart=p.pos.clone().sub(camera.position).normalize();
+  const pan=right.dot(toPart)*0.85;
+  audio.play(p,freq,vel,pan);
+  hits.push({t:now,note,part:p.id,velocity:+vel.toFixed(3)});
+  hitCount++;
+  recentHits.push({part:p,time:now/1000});
+  if(recentHits.length>40) recentHits.shift();
+  p.pulse=1.0; p.vib=1.0;
+  spawnRing(p.pos.clone().add(new THREE.Vector3(0,0.2,0)),p.family==='bell'||p.family==='glass'?0x8fe6ff:0xffcf7a);
+  spawnSparks(p.pos.clone().add(new THREE.Vector3(0,0.15,0)),p.family==='bell'||p.family==='glass'?0x8fe6ff:0xffb347,8+Math.floor(vel*14));
+  if(p.family==='drum'||p.family==='gong'||p.family==='bass') shake=Math.min(0.5,shake+0.12*vel);
+  // calibration of fall time for note balls
+  if(ball&&ball.releaseT&&ball.isNote&&!ball.calibrated){
+    ball.calibrated=true;
+    const measured=(now/1000)-ball.releaseT;
+    if(measured>0.2&&measured<1.4) p.travel=clamp(lerp(p.travel,measured,0.25),0.35,1.2);
+  }
+  // update UI
+  document.getElementById('hitCount').textContent=String(hitCount);
+  document.getElementById('ballReserve').textContent='120';
+  const m=document.getElementById('meter');
+  if(m){const bars=m.children; const idx=Math.floor(Math.random()*bars.length); bars[idx].style.height=(4+Math.random()*10)+'px';}
+  // audio style set per piece handled elsewhere
+}
+
+/* ---------------------------------------------------------------------------
+   PARTICLES — sparks and dust
+   ------------------------------------------------------------------------- */
+const sparkCount=420;
+const sparkGeo=new THREE.BufferGeometry();
+const sparkPos=new Float32Array(sparkCount*3);
+const sparkCol=new Float32Array(sparkCount*3);
+const sparkSize=new Float32Array(sparkCount);
+const sparkAlpha=new Float32Array(sparkCount);
+sparkGeo.setAttribute('position',new THREE.BufferAttribute(sparkPos,3));
+sparkGeo.setAttribute('color',new THREE.BufferAttribute(sparkCol,3));
+sparkGeo.setAttribute('size',new THREE.BufferAttribute(sparkSize,1));
+sparkGeo.setAttribute('alpha',new THREE.BufferAttribute(sparkAlpha,1));
+const sparkMat=new THREE.ShaderMaterial({
+  uniforms:{uTex:{value:sparkTex}},
+  vertexShader:`attribute float size; attribute float alpha; attribute vec3 color; varying vec3 vC; varying float vA;
+    void main(){vC=color;vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(300.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform sampler2D uTex; varying vec3 vC; varying float vA;
+    void main(){vec4 t=texture2D(uTex,gl_PointCoord); gl_FragColor=vec4(vC*t.rgb,t.a*vA);}`,
+  transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
+});
+const sparkPoints=new THREE.Points(sparkGeo,sparkMat); sparkPoints.frustumCulled=false; scene.add(sparkPoints);
+const sparkState=[];
+for(let i=0;i<sparkCount;i++) sparkState.push({v:new THREE.Vector3(),life:0,pos:new THREE.Vector3(),color:new THREE.Color()});
+let sparkCursor=0;
+function spawnSparks(pos,color,n){
+  for(let i=0;i<n;i++){
+    const s=sparkState[sparkCursor]; sparkCursor=(sparkCursor+1)%sparkCount;
+    s.pos.copy(pos).add(new THREE.Vector3(rand(-0.2,0.2),rand(-0.1,0.1),rand(-0.2,0.2)));
+    s.v.set(rand(-3,3),rand(1,5),rand(-3,3));
+    s.life=rand(0.4,1.1); s.max=s.life;
+    s.color.set(color);
+    sparkPos[(sparkCursor)*3]=s.pos.x; // will be updated in loop
+  }
+}
+function updateSparks(dt){
+  for(let i=0;i<sparkCount;i++){
+    const s=sparkState[i];
+    if(s.life>0){
+      s.life-=dt;
+      s.v.y-=9.8*dt*0.6;
+      s.pos.addScaledVector(s.v,dt);
+      const a=Math.max(0,s.life/s.max);
+      sparkPos[i*3]=s.pos.x; sparkPos[i*3+1]=s.pos.y; sparkPos[i*3+2]=s.pos.z;
+      sparkCol[i*3]=s.color.r; sparkCol[i*3+1]=s.color.g; sparkCol[i*3+2]=s.color.b;
+      sparkSize[i]=0.08+0.22*a; sparkAlpha[i]=a;
+    } else { sparkAlpha[i]=0; }
+  }
+  sparkGeo.attributes.position.needsUpdate=true;
+  sparkGeo.attributes.color.needsUpdate=true;
+  sparkGeo.attributes.size.needsUpdate=true;
+  sparkGeo.attributes.alpha.needsUpdate=true;
+}
+// dust
+const dustCount=650;
+const dustGeo=new THREE.BufferGeometry();
+const dustPos=new Float32Array(dustCount*3);
+const dustPhase=new Float32Array(dustCount);
+for(let i=0;i<dustCount;i++){
+  const r=rand(2,26), a=rand(0,TAU);
+  dustPos[i*3]=Math.cos(a)*r; dustPos[i*3+1]=rand(0,28); dustPos[i*3+2]=Math.sin(a)*r;
+  dustPhase[i]=rand(0,TAU);
+}
+dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0x9fc8ff,size:0.06,transparent:true,opacity:0.45,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
+dust.frustumCulled=false; scene.add(dust);
+
+/* ---------------------------------------------------------------------------
+   BALLS
+   ------------------------------------------------------------------------- */
+const balls=new Map();
+let ballSeq=0;
+const ballGeo=new THREE.SphereGeometry(BALL_R,14,10);
+const glowSpriteMat=new THREE.SpriteMaterial({map:ballGlowTex,color:0xffb060,transparent:true,opacity:0.85,blending:THREE.AdditiveBlending,depthWrite:false});
+const glowSpriteMatUser=new THREE.SpriteMaterial({map:ballGlowTex,color:0x6fd8ff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
+let reserve=120;
+function createBall(x,y,z,opts={}){
+  const isUser=!!opts.user;
+  const body=new CANNON.Body({mass:0.6,shape:new CANNON.Sphere(BALL_R),position:new CANNON.Vec3(x,y,z),material:ballPhysMat});
+  body.isBall=true; body.linearDamping=0.01; body.angularDamping=0.15;
+  body.velocity.set(opts.vx||0,opts.vy||0,opts.vz||0);
+  world.addBody(body);
+  const mesh=new THREE.Mesh(ballGeo,isUser?MAT.userBall:MAT.ball);
+  mesh.userData.ballId=null;
+  scene.add(mesh);
+  const sprite=new THREE.Sprite(isUser?glowSpriteMatUser:glowSpriteMat);
+  sprite.scale.set(0.9,0.9,1); sprite.position.copy(mesh.position); scene.add(sprite);
+  const id=++ballSeq;
+  const b={id,body,mesh,sprite,isUser,isNote:!!opts.note,releaseT:opts.releaseT||0,calibrated:false,part:opts.part||null,rest:0,created:performance.now()/1000};
+  mesh.userData.ballId=id;
+  balls.set(id,b);
+  if(isUser) userBallIds.push(id);
+  // cap total
+  if(balls.size>70){ const oldest=[...balls.values()].find(x=>!x.isUser)||[...balls.values()][0]; removeBall(oldest.id,true); }
+  return id;
+}
+const userBallIds=[];
+function removeBall(id,recycle){
+  const b=balls.get(id); if(!b) return false;
+  world.removeBody(b.body); scene.remove(b.mesh); scene.remove(b.sprite);
+  balls.delete(id);
+  const ui=userBallIds.indexOf(id); if(ui>=0) userBallIds.splice(ui,1);
+  if(recycle) addToLift();
+  return true;
+}
+function addToLift(){
+  if(liftBalls.length<24){
+    const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,6),MAT.ball);
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:ballGlowTex,color:0xffb060,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+    sprite.scale.set(0.7,0.7,1);
+    scene.add(mesh); scene.add(sprite);
+    liftBalls.push({mesh,sprite,t:Math.random()*0.02,seed:Math.random()});
+  } else {
+    liftReserve++;
+  }
+}
+const liftBalls=[];
+let liftReserve=0;
+function updateLift(dt){
+  for(let i=liftBalls.length-1;i>=0;i--){
+    const l=liftBalls[i];
+    l.t+=dt/2.1;
+    if(l.t>=1){
+      scene.remove(l.mesh); scene.remove(l.sprite); liftBalls.splice(i,1);
+      reserve=Math.min(160,reserve+1); liftReserve=Math.min(40,liftReserve+1);
+      const br=document.getElementById('ballReserve'); if(br) br.textContent=String(reserve);
+      continue;
+    }
+    const a=l.t*TAU*4.2+0.5;
+    l.mesh.position.set(Math.cos(a)*2.75,1.2+l.t*20.5,Math.sin(a)*2.75);
+    l.sprite.position.copy(l.mesh.position);
+    l.sprite.material.opacity=0.5+0.3*Math.sin(performance.now()*0.004+l.seed*10);
+  }
+  if(liftReserve>0&&liftBalls.length<18&&Math.random()<dt*6){liftReserve--;addToLift();}
+}
+
+/* ---------------------------------------------------------------------------
+   COMPOSER — rule-based interpretation of the request
+   ------------------------------------------------------------------------- */
+const SCALES={
+  major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10], harmonic:[0,2,3,5,7,8,11],
+  dorian:[0,2,3,5,7,9,10], phrygian:[0,1,3,5,7,8,10], lydian:[0,2,4,6,7,9,11],
+  pentatonic:[0,2,4,7,9], blues:[0,3,5,6,7,10], whole:[0,2,4,6,8,10],
+  mixolydian:[0,2,4,5,7,9,10], locrian:[0,1,3,5,6,8,10]
+};
+const STYLE_LABEL={chip:'8-bit',cinematic:'cinematic',jazz:'jazz',ambient:'ambient',techno:'techno',romantic:'romantic',march:'march',lullaby:'lullaby',tango:'tango',folk:'folk',gamelan:'gamelan',carnival:'carnival'};
+function styleLabel(cfg){ if(cfg.style==='jazz'&&cfg.meter===3) return 'jazz waltz'; return STYLE_LABEL[cfg.style]||cfg.style; }
+const ROOTS={c:0,'c#':1,db:1,d:2,'d#':3,eb:3,e:4,f:5,'f#':6,gb:6,g:7,'g#':8,ab:8,a:9,'a#':10,bb:10,b:11};
+const STYLE_BASE={
+  cinematic:{bpm:66,meter:4,scale:'harmonic',rootMidi:62,lead:'bell',harm:'string',bass:'bass',perc:'drum',density:0.45,reverb:0.72,bars:24,swing:0,leadOct:0,harmOct:-12,progression:[0,5,3,4,0,5,6,4],name:'Cinematic'},
+  jazz:{bpm:84,meter:3,scale:'dorian',rootMidi:60,lead:'string',harm:'bell',bass:'bass',perc:'drum',density:0.6,reverb:0.45,bars:24,swing:0.58,leadOct:0,harmOct:-12,progression:[0,3,4,0,0,5,1,4],name:'Jazz waltz'},
+  chip:{bpm:150,meter:4,scale:'major',rootMidi:60,lead:'marimba',harm:'glass',bass:'bass',perc:'drum',density:0.95,reverb:0.16,bars:24,swing:0,leadOct:12,harmOct:0,progression:[0,4,5,3,0,4,3,4],name:'8-bit chase'},
+  ambient:{bpm:52,meter:4,scale:'lydian',rootMidi:64,lead:'glass',harm:'string',bass:'bass',perc:'drum',density:0.25,reverb:0.9,bars:20,swing:0,leadOct:12,harmOct:-12,progression:[0,3,5,4],name:'Ambient'},
+  techno:{bpm:128,meter:4,scale:'phrygian',rootMidi:52,lead:'marimba',harm:'glass',bass:'bass',perc:'drum',density:0.9,reverb:0.2,bars:24,swing:0,leadOct:12,harmOct:12,progression:[0,0,5,3],name:'Techno'},
+  romantic:{bpm:76,meter:4,scale:'major',rootMidi:60,lead:'string',harm:'bell',bass:'bass',perc:'drum',density:0.5,reverb:0.62,bars:24,swing:0,leadOct:0,harmOct:-12,progression:[0,5,3,4,0,3,4,0],name:'Romantic'},
+  march:{bpm:120,meter:4,scale:'major',rootMidi:55,lead:'bell',harm:'marimba',bass:'bass',perc:'drum',density:0.75,reverb:0.3,bars:20,swing:0,leadOct:12,harmOct:0,progression:[0,4,0,4],name:'March'},
+  lullaby:{bpm:58,meter:6,scale:'major',rootMidi:65,lead:'glass',harm:'string',bass:'bass',perc:'drum',density:0.3,reverb:0.85,bars:20,swing:0,leadOct:12,harmOct:-12,progression:[0,3,5,4],name:'Lullaby'},
+  tango:{bpm:108,meter:4,scale:'harmonic',rootMidi:57,lead:'string',harm:'marimba',bass:'bass',perc:'drum',density:0.7,reverb:0.4,bars:24,swing:0,leadOct:0,harmOct:0,progression:[0,3,4,0,0,5,4,3],name:'Tango'},
+  folk:{bpm:96,meter:4,scale:'mixolydian',rootMidi:62,lead:'marimba',harm:'string',bass:'bass',perc:'drum',density:0.6,reverb:0.35,bars:20,swing:0,leadOct:0,harmOct:-12,progression:[0,4,0,4,5,3,0,0],name:'Folk'},
+  gamelan:{bpm:72,meter:4,scale:'pentatonic',rootMidi:60,lead:'bell',harm:'glass',bass:'gong',perc:'drum',density:0.55,reverb:0.75,bars:20,swing:0,leadOct:12,harmOct:0,progression:[0,2,4,1],name:'Gamelan'},
+  carnival:{bpm:138,meter:4,scale:'major',rootMidi:60,lead:'marimba',harm:'glass',bass:'bass',perc:'drum',density:0.9,reverb:0.3,bars:20,swing:0,leadOct:12,harmOct:0,progression:[0,4,5,3],name:'Carnival'}
+};
+const MOODS={
+  sad:{scale:'minor',bpm:-10,reverb:0.15,lead:'string',harm:'bell',density:-0.15,rootMidi:-2},
+  melancholy:{scale:'harmonic',bpm:-8,reverb:0.2,lead:'string',harm:'bell',density:-0.1,rootMidi:-2},
+  dark:{scale:'phrygian',bpm:-6,reverb:0.2,lead:'bell',harm:'string',density:-0.1,rootMidi:-5},
+  eerie:{scale:'locrian',bpm:-12,reverb:0.3,lead:'glass',harm:'bell',density:-0.2,rootMidi:-2},
+  mysterious:{scale:'harmonic',bpm:-4,reverb:0.25,lead:'glass',harm:'string',density:-0.05,rootMidi:-3},
+  happy:{scale:'major',bpm:12,reverb:-0.05,lead:'marimba',harm:'glass',density:0.15,rootMidi:2},
+  joyful:{scale:'major',bpm:16,reverb:-0.1,lead:'marimba',harm:'glass',density:0.2,rootMidi:2},
+  playful:{scale:'major',bpm:10,reverb:-0.05,lead:'marimba',harm:'glass',density:0.15,rootMidi:4},
+  epic:{scale:'harmonic',bpm:-4,reverb:0.25,lead:'bell',harm:'string',density:-0.05,rootMidi:-5},
+  heroic:{scale:'major',bpm:-2,reverb:0.2,lead:'bell',harm:'string',density:0,rootMidi:-2},
+  romantic:{scale:'major',bpm:-4,reverb:0.15,lead:'string',harm:'bell',density:-0.05,rootMidi:0},
+  dreamy:{scale:'lydian',bpm:-14,reverb:0.25,lead:'glass',harm:'string',density:-0.2,rootMidi:2},
+  calm:{scale:'major',bpm:-16,reverb:0.2,lead:'glass',harm:'string',density:-0.25,rootMidi:0},
+  angry:{scale:'minor',bpm:18,reverb:-0.1,lead:'marimba',harm:'string',density:0.2,rootMidi:-2},
+  intense:{scale:'harmonic',bpm:14,reverb:-0.05,lead:'bell',harm:'string',density:0.2,rootMidi:-3},
+  hopeful:{scale:'major',bpm:0,reverb:0.1,lead:'string',harm:'bell',density:0,rootMidi:2},
+  sleepy:{scale:'major',bpm:-18,reverb:0.25,lead:'glass',harm:'string',density:-0.3,rootMidi:0}
+};
+const INSTRUMENT_WORDS={bell:'bell',bells:'bell',chime:'bell',chimes:'bell',glockenspiel:'bell',
+  string:'string',strings:'string',violin:'string',cello:'string',harp:'string',lyre:'string',
+  marimba:'marimba',xylophone:'marimba',wood:'marimba',piano:'marimba',
+  glass:'glass',pipe:'glass',pipes:'glass',organ:'glass',flute:'glass',bowl:'glass',
+  drum:'drum',drums:'drum',percussion:'drum',taiko:'drum',beat:'drum',beats:'drum',
+  gong:'gong',gongs:'gong',bass:'bass'};
+
+function interpret(text){
+  const raw=(text||'').trim();
+  const s=raw.toLowerCase();
+  const cfg={};
+  // style detection
+  let style='cinematic';
+  if(/\b8-?bit\b|\bchip\b|chiptune|arcade|\bgame\b|retro|pixel|nintendo/.test(s)) style='chip';
+  else if(/jazz|swing|bebop|blues/.test(s)) style='jazz';
+  else if(/waltz/.test(s)) style='jazz';
+  else if(/techno|electronic|rave|dance|house|edm|pulse|club|industrial/.test(s)) style='techno';
+  else if(/ambient|dream|ethereal|space|cosmic|float|sleep|calm/.test(s)) style='ambient';
+  else if(/lullaby|sleepy|bedtime/.test(s)) style='lullaby';
+  else if(/epic|cinematic|orchestral|classical|battle|dramatic|film|score/.test(s)) style='cinematic';
+  else if(/romantic|love|serenade|tender|passion/.test(s)) style='romantic';
+  else if(/march|military|parade/.test(s)) style='march';
+  else if(/tango|dance/.test(s)) style='tango';
+  else if(/folk|country|celtic|acoustic/.test(s)) style='folk';
+  else if(/gamelan|balinese|rain|mysterious/.test(s)) style='gamelan';
+  else if(/carnival|circus|playful|fun|festival/.test(s)) style='carnival';
+  else if(/chase|race|run|frantic|fast|energetic/.test(s)) style='chip';
+  else if(/sad|melancholy|lonely|tearful|mourning|grief/.test(s)) style='cinematic';
+  else if(/happy|joy|upbeat|sunny|bright/.test(s)) style='chip';
+  else if(/dark|eerie|mysterious|haunted/.test(s)) style='cinematic';
+  Object.assign(cfg,JSON.parse(JSON.stringify(STYLE_BASE[style])));
+  cfg.style=style;
+  cfg.text=raw||'cinematic lament in D minor';
+  // mood
+  let mood=null;
+  for(const k of Object.keys(MOODS)) if(new RegExp(`\\b${k}`).test(s)) {mood=k;break;}
+  if(!mood){
+    if(/sad|melancholy|lonely|tearful/.test(s)) mood='sad';
+    else if(/happy|joy|upbeat|sunny|bright/.test(s)) mood='happy';
+    else if(/dark|eerie|haunted/.test(s)) mood='dark';
+    else if(/mysterious|enigma/.test(s)) mood='mysterious';
+    else if(/epic|heroic|majestic/.test(s)) mood='epic';
+    else if(/romantic|love|tender/.test(s)) mood='romantic';
+    else if(/dreamy|float|ethereal/.test(s)) mood='dreamy';
+    else if(/calm|gentle|peaceful/.test(s)) mood='calm';
+    else if(/angry|intense|aggressive/.test(s)) mood='angry';
+    else if(/playful|fun|silly|cute/.test(s)) mood='playful';
+    else if(/sleepy|lullaby/.test(s)) mood='sleepy';
+    else if(/hopeful|uplifting/.test(s)) mood='hopeful';
+  }
+  if(mood){const m=MOODS[mood]; cfg.mood=mood; cfg.bpm=clamp(cfg.bpm+m.bpm,42,190); cfg.scale=m.scale||cfg.scale; cfg.reverb=clamp(cfg.reverb+m.reverb,0.08,0.95); cfg.density=clamp(cfg.density+m.density,0.2,1.0); if(m.lead) cfg.lead=m.lead; if(m.harm) cfg.harm=m.harm; if(m.rootMidi) cfg.rootMidi+=m.rootMidi;}
+  else cfg.mood='cinematic';
+  // tempo words
+  if(/slow|sluggish|gentle|calm|laid.?back|adagio|largo/.test(s)) cfg.bpm=clamp(cfg.bpm-16,42,190);
+  if(/very slow|extremely slow|glacial/.test(s)) cfg.bpm=clamp(cfg.bpm-10,42,190);
+  if(/fast|quick|rapid|frantic|allegro|upbeat|driving|energetic|chase/.test(s)) cfg.bpm=clamp(cfg.bpm+26,42,190);
+  if(/very fast|extremely fast|frantic/.test(s)) cfg.bpm=clamp(cfg.bpm+12,42,190);
+  const bpmMatch=s.match(/(\d{2,3})\s*(?:bpm|beats)/); if(bpmMatch) cfg.bpm=clamp(parseInt(bpmMatch[1]),40,200);
+  // meter
+  if(/waltz|3\/4|three four/.test(s)) cfg.meter=3;
+  if(/6\/8|six eight|lullaby/.test(s)) cfg.meter=6;
+  if(/2\/4|march|polka/.test(s)) cfg.meter=2;
+  if(/7\/8|seven eight/.test(s)) cfg.meter=7;
+  // key
+  const keyMatch=s.match(/\b(?:in|key of)\s+([a-g])(?:#|sharp|b|flat)?\s*(major|minor|dorian|phrygian|lydian|mixolydian|harmonic|pentatonic|blues)?/);
+  if(keyMatch){
+    let r=ROOTS[keyMatch[1]]||0;
+    if(/#|sharp/.test(keyMatch[0])&&!keyMatch[1].includes('#')) r=(r+1)%12;
+    if(/b|flat/.test(keyMatch[0])&&!keyMatch[1].includes('b')) r=(r+11)%12;
+    cfg.rootMidi=48+r+12; // around C4
+    if(keyMatch[2]) cfg.scale=keyMatch[2];
+  } else if(/minor/.test(s)) cfg.scale='minor';
+  else if(/major/.test(s)) cfg.scale='major';
+  if(/harmonic|haunting|gothic/.test(s)) cfg.scale='harmonic';
+  if(/dorian/.test(s)) cfg.scale='dorian';
+  if(/phrygian|spanish/.test(s)) cfg.scale='phrygian';
+  if(/pentatonic|gamelan|asian/.test(s)) cfg.scale='pentatonic';
+  if(/lydian|dreamy/.test(s)) cfg.scale='lydian';
+  if(/blues/.test(s)) cfg.scale='blues';
+  if(style==='gamelan'&&!/major|minor|dorian|phrygian|lydian|mixolydian|harmonic|blues/.test(s)) cfg.scale='pentatonic';
+  // instruments override
+  for(const [word,fam] of Object.entries(INSTRUMENT_WORDS)){
+    if(new RegExp(`\\b${word}s?\\b`).test(s)){
+      if(fam==='drum'||fam==='gong') cfg.perc=fam==='gong'?'gong':'drum';
+      else if(fam==='bass') cfg.bass='bass';
+      else if(fam===cfg.lead||fam===cfg.harm) { /* already */ }
+      else { cfg.harm=cfg.lead; cfg.lead=fam; }
+    }
+  }
+  if(/no drums|without drums|drumless/.test(s)) cfg.perc=null;
+  // waltz jazz specific
+  if(style==='jazz'&&cfg.meter===3) cfg.name='Sad jazz waltz';
+  // title
+  const adj=cfg.mood.charAt(0).toUpperCase()+cfg.mood.slice(1);
+  const titles={
+    cinematic:['Nocturne of Falling Light','Cathedral of Glass and Gravity','The Last Bell Below'],
+    jazz:['Blue Hour Waltz','Smoke & Silver','Midnight in the Marble Hall'],
+    chip:['Neon Chase','Pixel Cascade','The Clockwork Sprint'],
+    ambient:['Weightless Cathedral','Sleeping Machinery','A Thousand Quiet Bells'],
+    techno:['Iron Pulse','The Foundry Heart','Gravity Rave'],
+    romantic:['Letters in Amber','Serenade for Falling Stars','The Tender Machine'],
+    march:['Procession of the Brass Sun','The Grand Mechanism','March of the Marble Guard'],
+    lullaby:['Hush, Little Mechanism','Cradle of Glass','The Sleep Engine'],
+    tango:['Tango of the Iron Rose','Midnight Gears','The Last Dance Below'],
+    folk:['The Ballad of the Falling Sky','Harvest of Bells','The Wanderer’s Machine'],
+    gamelan:['Rain on the Temple Gears','The Gamelan Engine','Mist & Bronze'],
+    carnival:['The Grand Carnival Machine','Clockwork Confetti','The Joyful Contraption']
+  };
+  const arr=titles[style]||titles.cinematic;
+  cfg.title=arr[Math.floor(Math.random()*arr.length)];
+  cfg.subtitle=`${cfg.mood===style?styleLabel(cfg):cfg.mood+' '+styleLabel(cfg)} · ${cfg.bpm} bpm · ${NOTE_NAMES[((cfg.rootMidi%12)+12)%12]} ${cfg.scale}`;
+  cfg.seed=hashString(raw+style+cfg.bpm+cfg.scale);
+  return cfg;
+}
+
+/* ---------------------------------------------------------------------------
+   SCORE GENERATION
+   ------------------------------------------------------------------------- */
+function pick(arr,rng){return arr[Math.floor(rng()*arr.length)];}
+function compose(cfg){
+  const rng=mulberry32(cfg.seed);
+  const scale=SCALES[cfg.scale]||SCALES.minor;
+  const meter=cfg.meter, beat=60/cfg.bpm, barDur=beat*meter;
+  const leadParts=(partByFamily[cfg.lead]||[]).slice();
+  const harmParts=(partByFamily[cfg.harm]||[]).slice();
+  const bassParts=(partByFamily[cfg.bass]||[]).slice();
+  const drumParts=(partByFamily['drum']||[]).slice();
+  const gongParts=(partByFamily['gong']||[]).slice();
+  if(!leadParts.length) leadParts.push(...(partByFamily['marimba']||[]));
+  if(!harmParts.length) harmParts.push(...(partByFamily['string']||[]));
+  // tune lead and harmony to scale slots (8 slots over 1-2 octaves)
+  const tune=(arr,oct)=>{
+    for(let i=0;i<arr.length;i++){
+      const deg=scale[i%scale.length]+12*Math.floor(i/scale.length);
+      const midi=cfg.rootMidi+oct+deg;
+      tunePart(arr[i],midiToFreq(midi),midiToName(midi));
+    }
+  };
+  tune(leadParts,cfg.leadOct||0);
+  tune(harmParts,cfg.harmOct||-12);
+  // bass parts tuned to low scale degrees
+  const bassOct=-24;
+  tune(bassParts,bassOct);
+  // drums tuned to character
+  const drumNotes=[36,40,43,48];
+  drumParts.forEach((p,i)=>{const m=drumNotes[i%drumNotes.length]; tunePart(p,midiToFreq(m),midiToName(m));});
+  gongParts.forEach((p,i)=>{const m=31-i*2; tunePart(p,midiToFreq(m),midiToName(m));});
+  // events
+  const events=[];
+  const tuneEvents=[];
+  const totalBars=cfg.bars||24;
+  const prog=cfg.progression;
+  const chordAt=bar=>{const d=prog[bar%prog.length]; return {root:d, tones:[d,(d+2)%7,(d+4)%7,(d+6)%7]};};
+  const add=(t,role,slot,vel,partOverride)=>{
+    events.push({t,role,slot,vel,part:partOverride||null});
+  };
+  // opening gesture: a low gong and a single high bell before the first bar
+  if(gongParts.length) add(0.12,'perc',0,0.7,gongParts[0]);
+  add(0.06,'lead',0,0.55);
+  add(0.5,'lead',4,0.42);
+  // lead melody motifs
+  const motifBars=[];
+  for(let b=0;b<2;b++){
+    const bar=[];
+    const density=cfg.density;
+    let n=0;
+    if(cfg.style==='chip'){
+      for(let i=0;i<16;i++){
+        if(rng()<0.85) bar.push({beat:i*0.25,slot:Math.floor(rng()*8),vel:0.45+rng()*0.4});
+      }
+    } else if(cfg.style==='jazz'){
+      const rh=[0,1.5,2,2.5];
+      for(const bt of rh){if(rng()<0.8) bar.push({beat:bt,slot:2+Math.floor(rng()*5),vel:0.4+rng()*0.4});}
+      if(rng()<0.6) bar.push({beat:1.0,slot:0,vel:0.3+rng()*0.2});
+    } else if(cfg.style==='ambient'||cfg.style==='lullaby'){
+      bar.push({beat:0,slot:Math.floor(rng()*8),vel:0.25+rng()*0.2});
+      if(rng()<0.5) bar.push({beat:meter*0.5,slot:Math.floor(rng()*8),vel:0.2+rng()*0.2});
+    } else if(cfg.style==='techno'){
+      for(let i=0;i<8;i++) if(rng()<0.7) bar.push({beat:i*0.5,slot:Math.floor(rng()*8),vel:0.4+rng()*0.3});
+    } else if(cfg.style==='march'){
+      for(let i=0;i<4;i++) if(rng()<0.8) bar.push({beat:i,slot:(i%2)*2+Math.floor(rng()*3),vel:0.5+rng()*0.3});
+    } else if(cfg.style==='gamelan'){
+      for(let i=0;i<8;i++) if(rng()<0.6) bar.push({beat:i*0.5,slot:Math.floor(rng()*5),vel:0.35+rng()*0.3});
+    } else {
+      for(let i=0;i<4;i++) if(rng()<0.7) bar.push({beat:i,slot:Math.floor(rng()*8),vel:0.4+rng()*0.3});
+      if(rng()<0.5) bar.push({beat:meter*0.75,slot:Math.floor(rng()*8),vel:0.3+rng()*0.2});
+    }
+    // contour: make adjacent slots close
+    bar.sort((a,b)=>a.beat-b.beat);
+    let prev=4;
+    for(const n of bar){ n.slot=clamp(prev+Math.round((rng()-0.5)*4),0,7); prev=n.slot; }
+    motifBars.push(bar);
+  }
+  // build sections
+  for(let bar=0;bar<totalBars;bar++){
+    const t0=bar*barDur;
+    const chord=chordAt(bar);
+    tuneEvents.push({t:t0-0.2,chord:chord.root});
+    const section=bar<2?'intro':bar<10?'A':bar<18?'B':'A2';
+    // lead
+    if(section!=='intro'||bar===1){
+      const motif=motifBars[bar%2];
+      for(const note of motif){
+        if(section==='intro'&&rng()<0.4) continue;
+        const slot=note.slot;
+        const vel=note.vel*(section==='B'?0.9:1.0);
+        const t=t0+note.beat*beat;
+        add(t,'lead',slot,vel);
+      }
+      // occasional high echo
+      if(section==='A2'&&rng()<0.4){
+        add(t0+barDur*0.75,'lead',clamp(6+Math.floor(rng()*2),0,7),0.35+rng()*0.2);
+      }
+    }
+    // harmony
+    if(cfg.style==='ambient'||cfg.style==='lullaby'){
+      if(bar%2===0){
+        const tones=chord.tones;
+        for(let i=0;i<Math.min(3,harmParts.length);i++){
+          add(t0+0.05*i,'harm',tones[i]%8,0.28+rng()*0.12);
+        }
+      }
+    } else if(cfg.style==='jazz'){
+      const hits=[1.0,2.0];
+      for(const bt of hits){ if(rng()<0.8){ const tones=chord.tones; for(let i=0;i<3;i++) add(t0+bt*beat+i*0.01,'harm',tones[i]%8,0.3+rng()*0.15); } }
+    } else if(cfg.style==='chip'){
+      // arpeggio on glass
+      if(section!=='intro') for(let i=0;i<8;i++){ if(rng()<0.6) add(t0+i*0.5*beat,'harm',chord.tones[i%3]%8,0.2+rng()*0.15); }
+    } else if(cfg.style==='techno'){
+      for(let i=0;i<4;i++) if(rng()<0.7) add(t0+i*beat,'harm',chord.tones[i%3]%8,0.25+rng()*0.1);
+    } else {
+      if(bar%2===0) for(let i=0;i<3;i++) add(t0+i*0.02,'harm',chord.tones[i]%8,0.25+rng()*0.15);
+      if(section==='B'&&rng()<0.5) add(t0+barDur*0.5,'harm',chord.tones[1]%8,0.2+rng()*0.1);
+    }
+    // bass
+    if(section!=='intro'||bar===1){
+      if(cfg.style==='jazz'){
+        add(t0,'bass',0,0.55+rng()*0.2);
+        add(t0+2*beat,'bass',1,0.35+rng()*0.2);
+      } else if(cfg.style==='techno'){
+        for(let i=0;i<4;i++) add(t0+i*beat,'bass',i%2,0.5+rng()*0.2);
+      } else if(cfg.style==='chip'){
+        for(let i=0;i<4;i++) add(t0+i*beat*0.5,'bass',i%2,0.4+rng()*0.2);
+      } else if(cfg.style==='ambient'||cfg.style==='lullaby'){
+        add(t0,'bass',0,0.3+rng()*0.15);
+      } else {
+        add(t0,'bass',0,0.5+rng()*0.2);
+        if(rng()<0.5) add(t0+barDur*0.75,'bass',1,0.3+rng()*0.15);
+      }
+    }
+    // percussion
+    if(cfg.perc!=='none'&&cfg.perc){
+      const d=cfg.perc==='gong'?gongParts:drumParts;
+      if(d.length){
+        if(cfg.style==='jazz'){
+          add(t0,'perc',0,0.4+rng()*0.2,d[0]);
+          add(t0+1.0*beat,'perc',2,0.3+rng()*0.2,d[2%d.length]);
+          add(t0+2.0*beat,'perc',2,0.3+rng()*0.2,d[2%d.length]);
+          for(let i=0;i<3;i++) add(t0+i*beat,'perc',3,0.2+rng()*0.15,d[3%d.length]);
+        } else if(cfg.style==='chip'){
+          for(let i=0;i<4;i++){ if(i%2===0) add(t0+i*beat,'perc',0,0.5+rng()*0.2,d[0]); else add(t0+i*beat,'perc',1,0.4+rng()*0.2,d[1%d.length]); }
+          for(let i=0;i<8;i++) if(rng()<0.7) add(t0+i*beat*0.5,'perc',3,0.15+rng()*0.1,d[3%d.length]);
+        } else if(cfg.style==='techno'){
+          for(let i=0;i<4;i++) add(t0+i*beat,'perc',0,0.6,d[0]);
+          add(t0+1*beat,'perc',1,0.5,d[1%d.length]); add(t0+3*beat,'perc',1,0.5,d[1%d.length]);
+          for(let i=0;i<8;i++) add(t0+i*beat*0.5,'perc',3,0.15+rng()*0.1,d[3%d.length]);
+        } else if(cfg.style==='ambient'||cfg.style==='lullaby'){
+          if(bar%4===0) add(t0,'perc',0,0.25,d[0]);
+        } else {
+          add(t0,'perc',0,0.45+rng()*0.2,d[0]);
+          if(rng()<0.7) add(t0+2*beat,'perc',1,0.3+rng()*0.2,d[1%d.length]);
+          if(rng()<0.5) add(t0+barDur*0.75,'perc',2,0.25+rng()*0.15,d[2%d.length]);
+        }
+        // gong accents
+        if(gongParts.length&&(bar===0||bar===10||bar===18)) add(t0,'perc',0,0.6,gongParts[0]);
+      }
+    }
+  }
+  // swing: push the off-beats late, the way a jazz player would
+  if(cfg.style==='jazz'||cfg.style==='blues'){
+    for(const e of events){
+      const pos=(e.t%barDur)/beat;
+      if(Math.abs((pos%1)-0.5)<0.02) e.t+=cfg.swing*beat*0.18;
+    }
+  }
+  // sort and assign parts
+  events.sort((a,b)=>a.t-b.t);
+  for(const e of events){
+    if(e.part) continue;
+    if(e.role==='lead'){
+      const barIdx=Math.floor(e.t/barDur);
+      const ch=chordAt(barIdx);
+      const pos=(e.t%barDur)/beat;
+      if(Math.abs(pos-Math.round(pos))<0.13 && rng()<0.72){
+        const tones=ch.tones.map(x=>x%7);
+        let best=e.slot, bd=99;
+        for(const t of tones){const d=Math.min(Math.abs(t-e.slot),7-Math.abs(t-e.slot)); if(d<bd){bd=d;best=t;}}
+        if(bd<=2) e.slot=best;
+      }
+      e.part=leadParts[e.slot%leadParts.length];
+    }
+    else if(e.role==='harm') e.part=harmParts[e.slot%harmParts.length];
+    else if(e.role==='bass') e.part=bassParts[e.slot%bassParts.length];
+    else if(e.role==='perc') e.part=drumParts[e.slot%drumParts.length];
+    if(!e.part) e.part=leadParts[0]||parts[0];
+  }
+  tuneEvents.sort((a,b)=>a.t-b.t);
+  return {cfg,events,tuneEvents,bassParts,bassOct,scale,barDur,totalBars,duration:totalBars*barDur+2};
+}
+
+function tunePart(p,freq,name){
+  p.targetFreq=freq; p.targetNote=name; p.tuning=true;
+  // visual retune targets
+  for(const tv of p.tuneVis){
+    const s=clamp(Math.pow(220/Math.max(60,freq),0.22),0.72,1.35);
+    tv.target= tv.axis==='x'? tv.base*s : tv.base*(2-s);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   PLAYBACK / SCHEDULER
+   ------------------------------------------------------------------------- */
+let current=null;
+let schedulerTimer=null;
+let releaseTimers=[];
+let pieceStart=0;
+let nextEvent=0;
+let nextTune=0;
+let loopAt=0;
+let lastText='slow cinematic lament in D minor with bells and strings';
+let isPlaying=false;
+function stopPlayback(){
+  if(schedulerTimer){clearInterval(schedulerTimer);schedulerTimer=null;}
+  for(const id of releaseTimers) clearTimeout(id);
+  releaseTimers=[];
+  isPlaying=false;
+}
+function startPiece(text,silent){
+  stopPlayback();
+  const cfg=interpret(text);
+  lastText=text;
+  const score=compose(cfg);
+  current=score;
+  pieceStart=performance.now()/1000+0.8;
+  nextEvent=0;
+  nextTune=0;
+  loopAt=pieceStart+score.duration;
+  isPlaying=true;
+  reserve=120; liftReserve=0;
+  for(const p of parts){ if(p.targetFreq){ p.freq=p.targetFreq; p.noteName=p.targetNote||p.noteName; } }
+  audio.setStyle({wet:cfg.reverb,reverb:cfg.reverb});
+  // UI
+  document.getElementById('pieceName').textContent=cfg.title;
+  document.getElementById('styleName').textContent=`${cfg.mood===cfg.style?styleLabel(cfg):cfg.mood+' '+styleLabel(cfg)} · ${NOTE_NAMES[((cfg.rootMidi%12)+12)%12]} ${cfg.scale} · ${cfg.bpm} bpm`;
+  document.getElementById('tempo').textContent=cfg.bpm;
+  document.getElementById('key').textContent=`${NOTE_NAMES[((cfg.rootMidi%12)+12)%12]} ${cfg.scale}`;
+  document.getElementById('meterLabel').textContent=cfg.meter===6?'6/8':cfg.meter===7?'7/8':`${cfg.meter}/4`;
+  document.getElementById('hitCount').textContent=String(hitCount);
+  document.getElementById('ballReserve').textContent='120';
+  // build meter bars
+  const m=document.getElementById('meter'); m.innerHTML='';
+  for(let i=0;i<16;i++){const b=document.createElement('i');b.style.height='3px';m.appendChild(b);}
+  // tuning visual
+  // scheduler checks every 25ms
+  schedulerTimer=setInterval(()=>{tickScheduler();},25);
+  if(!silent) toast(`Now playing: ${cfg.title}`);
+  // a single opening strike, released by the machine as the curtain rises
+  const introPart=parts.find(x=>x.family===cfg.lead)||parts.find(x=>x.family==='gong')||parts[0];
+  if(introPart) setTimeout(()=>{ if(isPlaying) releaseBall(introPart,{t:0,vel:0.7}); },10);
+}
+function tickScheduler(){
+  if(!current||!isPlaying) return;
+  const now=performance.now()/1000;
+  if(now>loopAt){
+    // next movement
+    const text=lastText;
+    startPiece(text,true);
+    return;
+  }
+  // apply mechanical retuning of the bass rank before the chord it belongs to
+  while(current.tuneEvents&&nextTune<current.tuneEvents.length){
+    const te=current.tuneEvents[nextTune];
+    if(pieceStart+te.t>now) break;
+    applyBassTune(te);
+    nextTune++;
+  }
+  // schedule events whose release time is within the next 0.35s
+  while(nextEvent<current.events.length){
+    const ev=current.events[nextEvent];
+    const p=ev.part;
+    const releaseAt=pieceStart+ev.t-p.travel;
+    if(releaseAt>now+0.4) break;
+    if(releaseAt<now-0.6){ nextEvent++; continue; } // too late, skip
+    // schedule
+    const delay=Math.max(0,(releaseAt-now)*1000);
+    const id=setTimeout(()=>{
+      releaseBall(p,ev);
+    },delay);
+    releaseTimers.push(id);
+    nextEvent++;
+  }
+}
+function applyBassTune(te){
+  if(!current) return;
+  const {bassParts,cfg,scale,bassOct}=current;
+  if(!bassParts||!bassParts.length) return;
+  const deg=scale[te.chord%scale.length];
+  const root=cfg.rootMidi+bassOct+deg;
+  const offs=[0,7,12];
+  bassParts.forEach((p,i)=>{
+    const m=root+offs[i%offs.length];
+    tunePart(p,midiToFreq(m),midiToName(m));
+    p.freq=p.targetFreq; p.noteName=p.targetNote;
+  });
+}
+function releaseBall(p,ev){
+  if(!isPlaying) return;
+  const x=p.x+rand(-0.02,0.02), z=p.z+rand(-0.02,0.02);
+  const y=p.mouthY-0.12;
+  reserve=Math.max(0,reserve-1);
+  releases.push({t:performance.now(),part:p.id});
+  const id=createBall(x,y,z,{note:true,part:p,releaseT:performance.now()/1000,vy:-0.2});
+  const b=balls.get(id); if(b){b.isNote=true;b.part=p;b.event=ev;}
+  // gate flash
+  if(p.mouthRing){p.mouthRing.visible=true;p.mouthRing.material.opacity=1;p.mouthRing.scale.set(1,1,1);p.mouthRing.userData.flash=1;}
+  document.getElementById('ballReserve').textContent=String(reserve);
+  // small puff
+  spawnSparks(new THREE.Vector3(x,p.mouthY-0.1,z),0xffcf7a,2);
+}
+
+/* ---------------------------------------------------------------------------
+   CAMERA DIRECTOR
+   ------------------------------------------------------------------------- */
+const tour={active:true,shot:'establish',t:0,dur:12,nextSwitch:12,orbit:0,desired:new THREE.Vector3(0,12,46),look:new THREE.Vector3(0,20,0),smoothLook:new THREE.Vector3(0,20,0),lastFocus:null};
+function setTourShot(name){
+  tour.shot=name; tour.t=0;
+  if(name==='establish'){tour.dur=14;tour.orbit=rand(0,TAU);}
+  else if(name==='rise'){tour.dur=11;}
+  else if(name==='closeup'){tour.dur=8;}
+  else if(name==='crown'){tour.dur=10;}
+  else if(name==='lift'){tour.dur=9;}
+  else if(name==='wide'){tour.dur=12;}
+  tour.nextSwitch=tour.dur;
+}
+function pickFocus(){
+  if(recentHits.length===0) return null;
+  const now=performance.now()/1000;
+  const recent=recentHits.filter(h=>now-h.time<6);
+  if(!recent.length) return null;
+  return recent[Math.floor(Math.random()*recent.length)].part;
+}
+function updateTour(dt){
+  tour.t+=dt;
+  if(tour.t>tour.nextSwitch){
+    const choices=['establish','closeup','rise','closeup','crown','lift','wide','closeup'];
+    const focus=pickFocus();
+    let name=pick(choices,mulberry32(Math.floor(performance.now()/1000)));
+    if(focus&&Math.random()<0.6) name='closeup';
+    setTourShot(name);
+    if(name==='closeup') tour.lastFocus=focus;
+  }
+  const yTarget=10;
+  if(tour.shot==='establish'){
+    tour.orbit+=dt*0.045;
+    tour.desired.set(Math.cos(tour.orbit)*46,13+Math.sin(tour.orbit*0.5)*1.5,Math.sin(tour.orbit)*46);
+    tour.look.set(0,yTarget,0);
+  } else if(tour.shot==='rise'){
+    const k=tour.t/tour.dur;
+    tour.desired.set(Math.cos(tour.orbit+0.4)*24,3+k*10,Math.sin(tour.orbit+0.4)*24);
+    tour.look.set(0,10+k*8,0);
+  } else if(tour.shot==='wide'){
+    tour.orbit+=dt*0.03;
+    tour.desired.set(Math.cos(tour.orbit)*50,16,Math.sin(tour.orbit)*50);
+    tour.look.set(0,11,0);
+  } else if(tour.shot==='crown'){
+    tour.orbit+=dt*0.05;
+    tour.desired.set(Math.cos(tour.orbit)*15,25.5+Math.sin(tour.t*0.4)*1.2,Math.sin(tour.orbit)*15);
+    tour.look.set(0,25,0);
+  } else if(tour.shot==='lift'){
+    tour.orbit+=dt*0.06;
+    tour.desired.set(Math.cos(tour.orbit)*11,9+Math.sin(tour.t*0.3)*3,Math.sin(tour.orbit)*11);
+    tour.look.set(0,12,0);
+  } else if(tour.shot==='closeup'){
+    let p=tour.lastFocus;
+    if(!p) p=pickFocus();
+    if(p){
+      tour.lastFocus=p;
+      const ang=p.angle+Math.sin(tour.t*0.25)*0.25;
+      const dist=5.4;
+      tour.desired.set(p.x+Math.cos(ang)*dist, p.y+2.2+Math.sin(tour.t*0.3)*0.6, p.z+Math.sin(ang)*dist);
+      tour.look.set(p.x,p.y+0.4,p.z);
+    } else {
+      tour.desired.set(Math.cos(tour.orbit)*38,12,Math.sin(tour.orbit)*38);
+      tour.look.set(0,11,0);
+    }
+  }
+  // ease camera
+  const ease=1-Math.pow(0.001,dt*0.9);
+  camera.position.lerp(tour.desired,clamp(ease,0.01,0.12));
+  tour.smoothLook.lerp(tour.look,clamp(ease,0.01,0.12));
+  camera.lookAt(tour.smoothLook);
+}
+function enableManual(){
+  if(!tour.active) return;
+  tour.active=false;
+  controls.enabled=true;
+  controls.target.copy(tour.smoothLook);
+  controls.update();
+  document.getElementById('tourBtn').classList.remove('on');
+}
+function enableTour(){
+  tour.active=true; controls.enabled=false;
+  tour.smoothLook.copy(controls.target);
+  setTourShot('establish');
+  document.getElementById('tourBtn').classList.add('on');
+}
+
+/* ---------------------------------------------------------------------------
+   INTERACTION
+   ------------------------------------------------------------------------- */
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+let dragBall=null, dragPlane=new THREE.Plane(), dragOffset=new THREE.Vector3();
+let pointerDown=false, downX=0, downY=0, lastMoveX=0, lastMoveY=0, lastMoveT=0, throwVX=0, throwVY=0, throwVZ=0;
+let removeMode=false;
+function getBallAt(e){
+  const rect=renderer.domElement.getBoundingClientRect();
+  pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const meshes=[...balls.values()].map(b=>b.mesh);
+  const hit=raycaster.intersectObjects(meshes,false)[0];
+  if(hit) return balls.get(hit.object.userData.ballId);
+  return null;
+}
+function onPointerDown(e){
+  if(e.target!==renderer.domElement) return;
+  audio.resume();
+  pointerDown=true; downX=e.clientX; downY=e.clientY; lastMoveX=e.clientX; lastMoveY=e.clientY; lastMoveT=performance.now();
+  if(tour.active) enableManual();
+  const b=getBallAt(e);
+  if(b){
+    if(e.shiftKey||e.button===2||removeMode){ removeBall(b.id,false); return; }
+    dragBall=b;
+    controls.enabled=false;
+    b.body.type=CANNON.Body.KINEMATIC;
+    b.body.velocity.set(0,0,0); b.body.angularVelocity.set(0,0,0);
+    const normal=new THREE.Vector3(); camera.getWorldDirection(normal); normal.negate();
+    dragPlane.setFromNormalAndCoplanarPoint(normal,b.mesh.position);
+    const hit=new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane,hit);
+    dragOffset.copy(b.mesh.position).sub(hit);
+    b.body.wakeUp();
+    throwVX=throwVY=throwVZ=0;
+  }
+}
+function onPointerMove(e){
+  if(!pointerDown) return;
+  const now=performance.now();
+  const dx=e.clientX-lastMoveX, dy=e.clientY-lastMoveY;
+  const dt=Math.max(1,now-lastMoveT)/1000;
+  lastMoveX=e.clientX; lastMoveY=e.clientY; lastMoveT=now;
+  if(dragBall){
+    const rect=renderer.domElement.getBoundingClientRect();
+    pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
+    pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(pointer,camera);
+    const hit=new THREE.Vector3();
+    if(raycaster.ray.intersectPlane(dragPlane,hit)){
+      hit.add(dragOffset);
+      dragBall.body.position.set(hit.x,hit.y,hit.z);
+      dragBall.body.velocity.set(dx/dt,dy/dt,0);
+      // keep velocity for throw
+      throwVX=clamp(dx/dt,-22,22); throwVY=clamp(-dy/dt,-22,22); throwVZ=0;
+    }
+  }
+}
+function onPointerUp(e){
+  if(!pointerDown) return;
+  pointerDown=false;
+  const moved=Math.hypot(e.clientX-downX,e.clientY-downY);
+  if(dragBall){
+    const b=dragBall; dragBall=null;
+    b.body.type=CANNON.Body.DYNAMIC;
+    b.body.mass=0.6; b.body.updateMassProperties();
+    b.body.velocity.set(throwVX,throwVY,throwVZ);
+    b.body.angularVelocity.set(rand(-3,3),rand(-3,3),rand(-3,3));
+    b.body.wakeUp();
+    controls.enabled=!tour.active;
+    throwVX=throwVY=throwVZ=0;
+    return;
+  }
+  if(moved<6){
+    // click: drop a ball at the clicked surface
+    const rect=renderer.domElement.getBoundingClientRect();
+    pointer.x=((e.clientX-rect.left)/rect.width)*2-1;
+    pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(pointer,camera);
+    const targets=[...machineGroup.children, ...scene.children.filter(o=>o.isMesh&&o.geometry&&o.geometry.type==='CircleGeometry')];
+    const hit=raycaster.intersectObjects(scene.children,true).find(h=>h.object.visible&&h.object!==dust&&h.object!==sparkPoints&&!(h.object.isSprite));
+    let pos;
+    if(hit){ pos=hit.point.clone().add(new THREE.Vector3(0,0.8,0)); }
+    else {
+      const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+      pos=camera.position.clone().add(dir.multiplyScalar(20));
+      pos.y=Math.max(pos.y,8);
+    }
+    if(pos.y<1) pos.y=1.5;
+    createBall(pos.x,pos.y,pos.z,{user:true,vy:0});
+    toast('Ball dropped');
+  }
+}
+window.addEventListener('pointerdown',(e)=>{
+  if(e.target===renderer.domElement && tour.active) enableManual();
+},true);
+window.addEventListener('wheel',(e)=>{
+  if(e.target===renderer.domElement && tour.active) enableManual();
+},true);
+window.addEventListener('pointerdown',onPointerDown,{capture:false});
+window.addEventListener('pointermove',onPointerMove);
+window.addEventListener('pointerup',onPointerUp);
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+
+/* ---------------------------------------------------------------------------
+   UI WIRING
+   ------------------------------------------------------------------------- */
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>t.classList.remove('show'),1800);
+}
+const soundHint=document.getElementById('soundHint');
+soundHint.addEventListener('click',()=>{
+  audio.resume();
+  soundHint.classList.add('hidden');
+  toast('Sound on · the machine is playing');
+});
+document.getElementById('playBtn').addEventListener('click',()=>{
+  const v=document.getElementById('req').value.trim()||'cinematic lament in D minor';
+  startPiece(v);
+});
+document.getElementById('req').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();document.getElementById('playBtn').click();}
+});
+document.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
+  const t=ch.dataset.text;
+  document.getElementById('req').value=t;
+  startPiece(t);
+}));
+document.getElementById('tourBtn').addEventListener('click',()=>{
+  if(tour.active) enableManual(); else enableTour();
+  toast(tour.active?'Cinematic tour on':'Manual camera');
+});
+document.getElementById('dropBtn').addEventListener('click',()=>{
+  const a=rand(0,TAU), r=rand(4,8);
+  createBall(Math.cos(a)*r,rand(14,22),Math.sin(a)*r,{user:true});
+  toast('Ball dropped');
+});
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  for(const id of [...userBallIds]) removeBall(id,false);
+  toast('Thrown balls cleared');
+});
+document.getElementById('muteBtn').addEventListener('click',()=>{
+  const m=!audio.muted; audio.setMuted(m);
+  document.getElementById('muteBtn').textContent=m?'Sound off':'Sound on';
+  document.getElementById('muteBtn').classList.toggle('on',!m);
+});
+window.addEventListener('keydown',e=>{
+  if(e.code==='KeyM'){document.getElementById('muteBtn').click();}
+  if(e.code==='KeyC'){document.getElementById('tourBtn').click();}
+  if(e.code==='KeyD'){document.getElementById('dropBtn').click();}
+  if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();document.getElementById('playBtn').click();}
+});
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ---------------------------------------------------------------------------
+   BUILD
+   ------------------------------------------------------------------------- */
+makeRingPool();
+buildStructure();
+buildParts();
+// initial tuning so the machine looks alive before first piece
+for(const p of parts){ tunePart(p,midiToFreq(48+p.slot*2),midiToName(48+p.slot*2)); p.freq=p.targetFreq; p.noteName=p.targetNote; }
+// initial visual tune values
+for(const p of parts){ for(const tv of p.tuneVis){ tv.current=tv.target||tv.base; } }
+audio.init();
+// default piece
+startPiece(lastText,true);
+window.scene=scene;
+
+/* ---------------------------------------------------------------------------
+   MAIN LOOP
+   ------------------------------------------------------------------------- */
+let last=performance.now(), fpsAcc=0, fpsN=0, fpsT=0;
+function animate(now){
+  const dt=Math.min(0.2,(now-last)/1000); last=now;
+  // physics
+  world.step(1/120,dt,24);
+  // tune animations
+  for(const p of parts){
+    p.freq=lerp(p.freq,p.targetFreq,clamp(dt*2.2,0,1));
+    p.noteName=p.targetNote||p.noteName;
+    for(const tv of p.tuneVis){
+      if(tv.target==null) tv.target=tv.base;
+      tv.current=lerp(tv.current??tv.base,tv.target,clamp(dt*2.0,0,1));
+      if(tv.axis==='x'){tv.mesh.scale.x=tv.current/tv.base;}
+      else {tv.mesh.scale.y=tv.current/tv.base; tv.mesh.position.y=tv.center*(tv.current/tv.base);}
+    }
+    if(p.pulse>0){
+      p.pulse=Math.max(0,p.pulse-dt*3.2);
+      const s=1+p.pulse*0.035;
+      p.group.scale.set(s,s,s);
+      if(p.glow){p.glow.material.opacity=p.pulse*0.85; p.glow.scale.setScalar(2.2+p.pulse*2.2);}
+      if(p.glowRing){p.glowRing.material.opacity=0.3+p.pulse*0.7;}
+    } else {
+      p.group.scale.set(1,1,1);
+      if(p.glow) p.glow.material.opacity=0.08+0.04*Math.sin(performance.now()*0.001+p.slot);
+    }
+    // string vibration
+    if(p.strings.length&&p.vib>0){
+      p.vib=Math.max(0,p.vib-dt*2.4);
+      const o=Math.sin(performance.now()*0.045)*0.06*p.vib;
+      p.strings[0].position.x=o;
+      p.strings[0].rotation.z=o*1.6;
+    }
+    if(p.clapper&&p.vib>0){p.clapper.position.x=Math.sin(performance.now()*0.03)*0.08*p.vib;}
+    if(p.membrane&&p.vib>0){const s=1+Math.sin(performance.now()*0.06)*0.02*p.vib;p.membrane.scale.set(s,s,1);}
+    // hopper flash
+    if(p.mouthRing&&p.mouthRing.userData.flash>0){
+      p.mouthRing.userData.flash-=dt*3.5;
+      const f=Math.max(0,p.mouthRing.userData.flash);
+      p.mouthRing.material.opacity=f;
+      p.mouthRing.scale.setScalar(1+(1-f)*0.7);
+      if(f<=0) p.mouthRing.visible=false;
+    }
+  }
+  // balls
+  for(const [id,b] of balls){
+    if(b.body.type===CANNON.Body.DYNAMIC){
+      // sync mesh
+      b.mesh.position.copy(b.body.position); b.mesh.quaternion.copy(b.body.quaternion);
+      b.sprite.position.copy(b.mesh.position);
+      // recycle machine balls
+      const speed=b.body.velocity.length();
+      if(!b.isUser){
+        if(b.body.position.y<0.6||(speed<0.25&&b.body.position.y<TIER_Y[0]+1.2)){
+          b.rest+=dt; if(b.rest>0.4){removeBall(id,true);continue;}
+        } else b.rest=0;
+      } else {
+        if(b.body.position.y<-2){removeBall(id,false);continue;}
+        if(speed<0.2) b.rest+=dt; else b.rest=0;
+        if(b.rest>18&&balls.size>24){removeBall(id,false);continue;}
+      }
+    } else if(b.body.type===CANNON.Body.KINEMATIC){
+      b.mesh.position.copy(b.body.position); b.sprite.position.copy(b.mesh.position);
+    }
+  }
+  // lift, particles, structure motion
+  updateLift(dt);
+  updateSparks(dt);
+  // rings
+  for(const r of ringsPool){
+    if(r.life>0){
+      r.life-=dt;
+      const k=1-r.life/r.max;
+      r.mesh.scale.setScalar(1+k*4.5);
+      r.mesh.material.opacity=Math.max(0,1-k);
+      r.mesh.rotation.z+=dt*2;
+      if(r.life<=0) r.mesh.visible=false;
+    }
+  }
+  // structure animation
+  for(const g of structure.gears) g.rotation.y+=dt*0.35;
+  for(let i=0;i<structure.rings.length;i++){structure.rings[i].rotation.z+=dt*(0.12+i*0.03);}
+  if(structure.pendulum) structure.pendulum.rotation.z=Math.sin(performance.now()*0.0011)*0.32;
+  if(structure.beacon) structure.beacon.rotation.y+=dt*0.8;
+  // dust drift
+  const dp=dustGeo.attributes.position.array;
+  for(let i=0;i<dustCount;i++){
+    dp[i*3+1]+=Math.sin(performance.now()*0.0004+i)*dt*0.15;
+    dp[i*3]+=Math.cos(performance.now()*0.0003+i*0.7)*dt*0.08;
+    if(dp[i*3+1]>28) dp[i*3+1]=0.2;
+  }
+  dustGeo.attributes.position.needsUpdate=true;
+  // camera
+  if(tour.active){ updateTour(dt); }
+  else { controls.update(); }
+  // shake
+  if(shake>0){
+    shake=Math.max(0,shake-dt*1.6);
+    camera.position.x+=rand(-1,1)*shake*0.12;
+    camera.position.y+=rand(-1,1)*shake*0.12;
+  }
+  renderer.render(scene,camera);
+  // fps
+  fpsAcc+=dt; fpsN++;
+  if(fpsAcc>0.5){
+    fpsT=Math.round(fpsN/fpsAcc); fpsAcc=0; fpsN=0;
+    document.getElementById('fps').textContent=`${fpsT} FPS · ${parts.length} tuned parts · ${balls.size} balls`;
+  }
+  // ready flag
+  if(!window.ready) window.ready=true;
+}
+renderer.setAnimationLoop(animate);
+
+/* ---------------------------------------------------------------------------
+   TEST API
+   ------------------------------------------------------------------------- */
+window.machine={
+  play(text){ startPiece(text||lastText); return current?current.cfg.title:'—'; },
+  addBall(x,y,z){ return createBall(x,y,z,{user:true}); },
+  throwBall(id,vx,vy,vz){ const b=balls.get(id); if(!b) return false; b.body.type=CANNON.Body.DYNAMIC; b.body.mass=0.6; b.body.updateMassProperties(); b.body.velocity.set(vx,vy,vz); b.body.wakeUp(); return true; },
+  hits,
+  get reserve(){return reserve;},
+  get parts(){return parts;},
+  get score(){return current;},
+  get releases(){return releases;},
+  focus(id){
+    const p=parts.find(x=>x.id===id); if(!p) return false;
+    tour.active=true; controls.enabled=false; tour.lastFocus=p; setTourShot('closeup'); tour.dur=60; tour.nextSwitch=60; tour.t=0;
+    return true;
+  },
+  get piece(){return current?current.cfg.title:null;},
+  get balls(){return balls.size;},
+  startPiece,
+  audio
+};
+window.ready=true;
+</script>
+</body>
+</html>
